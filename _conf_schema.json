@@ -1,375 +1,209 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "title": "WinRemote V0.4 配置",
-  "description": "通过 QQ 远程控制 Windows 主机的 AstrBot 插件配置",
-  "groups": [
-    {
-      "key": "server",
-      "title": "① 服务端连接",
-      "description": "WebSocket 服务端的监听地址与端口。强烈建议监听 127.0.0.1 并配合 SSH 隧道使用，避免裸奔公网。",
-      "items": [
-        {
-          "key": "ws_host",
-          "type": "string",
-          "title": "监听地址",
-          "description": "127.0.0.1 = 仅本机（推荐，配合 SSH 隧道）；0.0.0.0 = 监听所有网卡（需自行保障安全）",
-          "enum": ["127.0.0.1", "0.0.0.0", "::1"],
-          "enumDescriptions": ["仅本机回环（最安全，推荐）", "监听所有 IPv4 网卡", "监听 IPv6 回环"],
-          "default": "127.0.0.1"
-        },
-        {
-          "key": "ws_port",
-          "type": "integer",
-          "title": "监听端口",
-          "description": "Agent 反连的 WebSocket 端口",
-          "default": 6190,
-          "minimum": 1024,
-          "maximum": 65535
-        },
-        {
-          "key": "ws_path",
-          "type": "string",
-          "title": "WebSocket 路径",
-          "description": "Agent 连接时使用的 URL 路径，可自定义以混淆",
-          "default": "/winremote",
-          "minLength": 1,
-          "maxLength": 64
-        }
-      ]
-    },
-    {
-      "key": "auth",
-      "title": "② 认证与安全",
-      "description": "Token 校验 + 二次密码 + 防暴力破解。Token 至少 8 位，建议 32 位以上随机字符串。",
-      "items": [
-        {
-          "key": "secret_token",
-          "type": "string",
-          "title": "共享密钥 Token",
-          "description": "Agent 与服务器之间的共享密钥，务必使用长随机字符串",
-          "default": "",
-          "minLength": 8,
-          "maxLength": 256
-        },
-        {
-          "key": "admin_password",
-          "type": "string",
-          "title": "二次密码（留空禁用）",
-          "description": "每次 /win 指令可追加 --pwd xxx 做二次认证；留空则不启用",
-          "default": "",
-          "maxLength": 128
-        },
-        {
-          "key": "password_max_attempts",
-          "type": "integer",
-          "title": "密码最大重试次数",
-          "description": "超过此次数后 QQ 号将被临时封禁",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 20
-        },
-        {
-          "key": "password_ban_duration",
-          "type": "integer",
-          "title": "封禁时长（秒）",
-          "description": "密码错误超限后的封禁持续时间",
-          "default": 300,
-          "minimum": 60,
-          "maximum": 86400
-        },
-        {
-          "key": "require_encryption",
-          "type": "boolean",
-          "title": "要求加密连接（wss://）",
-          "description": "启用后拒绝非 wss 的 Agent 连接，防止 Token 明文传输",
-          "default": false
-        }
-      ]
-    },
-    {
-      "key": "admin",
-      "title": "③ 管理员与 Agent",
-      "description": "哪些 QQ 号可以使用 /win 指令，以及 Agent 心跳与并发控制。",
-      "items": [
-        {
-          "key": "admin_qq",
-          "type": "array",
-          "title": "管理员 QQ 号白名单",
-          "description": "只有列表中的 QQ 号可以触发 /win 指令",
-          "items": {
-            "type": "string",
-            "title": "QQ 号",
-            "minLength": 5,
-            "maxLength": 15
-          },
-          "default": []
-        },
-        {
-          "key": "allow_group",
-          "type": "boolean",
-          "title": "允许群聊中触发",
-          "description": "关闭则仅私聊可用",
-          "default": false
-        },
-        {
-          "key": "heartbeat_interval",
-          "type": "integer",
-          "title": "心跳间隔（秒）",
-          "description": "Agent 主动上报心跳的周期",
-          "default": 15,
-          "minimum": 5,
-          "maximum": 120
-        },
-        {
-          "key": "heartbeat_timeout",
-          "type": "integer",
-          "title": "离线判定超时（秒）",
-          "description": "超过此时间未收到心跳即判定 Agent 离线",
-          "default": 45,
-          "minimum": 15,
-          "maximum": 300
-        },
-        {
-          "key": "max_agents",
-          "type": "integer",
-          "title": "最大 Agent 并发数",
-          "description": "同时在线的最大 Windows Agent 数量",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 20
-        }
-      ]
-    },
-    {
-      "key": "commands",
-      "title": "④ 指令白/黑名单",
-      "description": "控制哪些命令可以被执行。建议开启严格白名单模式以获得最高安全性。",
-      "items": [
-        {
-          "key": "allow_commands",
-          "type": "array",
-          "title": "指令白名单",
-          "description": "仅允许列表中的命令前缀执行（如 ipconfig、dir、systeminfo）",
-          "items": {"type": "string"},
-          "default": []
-        },
-        {
-          "key": "deny_commands",
-          "type": "array",
-          "title": "指令黑名单",
-          "description": "无论白名单如何，命中即拒绝",
-          "items": {"type": "string"},
-          "default": ["rm", "del", "format", "shutdown", "reg", "net user", "net localgroup"]
-        },
-        {
-          "key": "deny_regex",
-          "type": "array",
-          "title": "禁用正则",
-          "description": "正则匹配命令全文，命中即拒绝（防绕过）",
-          "items": {"type": "string"},
-          "default": ["|.*rm", "&&.*rm", ";.*rm"]
-        },
-        {
-          "key": "allow_powershell",
-          "type": "boolean",
-          "title": "允许 PowerShell 指令",
-          "description": "关闭后 /win powershell 将被拒绝",
-          "default": true
-        },
-        {
-          "key": "strict_whitelist",
-          "type": "boolean",
-          "title": "严格白名单模式",
-          "description": "开启后仅白名单内指令可执行，黑名单同时生效",
-          "default": false
-        }
-      ]
-    },
-    {
-      "key": "files",
-      "title": "⑤ 文件读写",
-      "description": "限制 Agent 可读写的文件路径范围，防止越狱访问敏感目录。",
-      "items": [
-        {
-          "key": "file_whitelist_paths",
-          "type": "array",
-          "title": "路径白名单",
-          "description": "Agent 仅可访问这些目录下的文件（支持多行）",
-          "items": {"type": "string"},
-          "default": ["C:\\\\Temp", "C:\\\\Users\\\\Public"]
-        },
-        {
-          "key": "file_blacklist_keywords",
-          "type": "array",
-          "title": "路径越狱关键词",
-          "description": "路径中包含这些关键词的请求直接拒绝",
-          "items": {"type": "string"},
-          "default": ["..\\", "../", "%temp%", "$env:"]
-        },
-        {
-          "key": "file_max_read_bytes",
-          "type": "integer",
-          "title": "最大读取字节数",
-          "description": "单次读文件返回的最大字节数",
-          "default": 1048576,
-          "minimum": 1024,
-          "maximum": 10485760
-        },
-        {
-          "key": "file_allow_write",
-          "type": "boolean",
-          "title": "允许写入文件",
-          "description": "关闭后 Agent 仅可读不可写",
-          "default": false
-        }
-      ]
-    },
-    {
-      "key": "output",
-      "title": "⑥ 输出与截图",
-      "description": "控制命令输出截断、流式分块参数以及截图格式与质量。",
-      "items": [
-        {
-          "key": "auto_screenshot",
-          "type": "boolean",
-          "title": "自动截图",
-          "description": "Agent 上线后自动发送一次桌面截图",
-          "default": false
-        },
-        {
-          "key": "screenshot_format",
-          "type": "string",
-          "title": "截图格式",
-          "description": "JPEG 文件小速度快；PNG 无损但体积大；WebP 折中",
-          "enum": ["JPEG", "PNG", "WebP"],
-          "enumDescriptions": ["JPEG - 体积小，有损压缩", "PNG - 无损，体积大", "WebP - 现代格式，体积小质量好"],
-          "default": "JPEG"
-        },
-        {
-          "key": "screenshot_quality",
-          "type": "integer",
-          "title": "截图质量（1-100）",
-          "description": "仅对 JPEG/WebP 有效，越大越清晰体积越大",
-          "default": 75,
-          "minimum": 1,
-          "maximum": 100
-        },
-        {
-          "key": "max_output_bytes",
-          "type": "integer",
-          "title": "最大输出字节数",
-          "description": "单次命令返回的最大字节数，防止刷屏",
-          "default": 8192,
-          "minimum": 1024,
-          "maximum": 1048576
-        },
-        {
-          "key": "stream_chunk_size",
-          "type": "integer",
-          "title": "流式分块大小（字节）",
-          "description": "大输出分块推送时的每块大小",
-          "default": 1024,
-          "minimum": 256,
-          "maximum": 16384
-        },
-        {
-          "key": "stream_interval_ms",
-          "type": "integer",
-          "title": "流式推送间隔（毫秒）",
-          "description": "分块之间的最小推送间隔，防止刷屏",
-          "default": 500,
-          "minimum": 100,
-          "maximum": 5000
-        },
-        {
-          "key": "shell_timeout",
-          "type": "integer",
-          "title": "Shell 超时（秒）",
-          "description": "单条命令的最长执行时间，超时强杀",
-          "default": 30,
-          "minimum": 5,
-          "maximum": 600
-        }
-      ]
-    },
-    {
-      "key": "audit",
-      "title": "⑦ 审计日志",
-      "description": "记录所有 /win 指令的触发者、目标 Agent、动作与结果。",
-      "items": [
-        {
-          "key": "audit_enabled",
-          "type": "boolean",
-          "title": "启用审计日志",
-          "description": "关闭后不记录任何审计条目",
-          "default": true
-        },
-        {
-          "key": "audit_log_path",
-          "type": "string",
-          "title": "审计日志路径",
-          "description": "JSONL 格式，一行一条记录",
-          "default": "/root/.local/share/astrbot/data/logs/winremote_audit.jsonl"
-        },
-        {
-          "key": "audit_max_entries",
-          "type": "integer",
-          "title": "内存保留条数",
-          "description": "超过后丢弃最旧条目",
-          "default": 500,
-          "minimum": 50,
-          "maximum": 5000
-        },
-        {
-          "key": "audit_rotation_mb",
-          "type": "integer",
-          "title": "文件轮转大小（MB）",
-          "description": "超过后自动归档并新建日志文件",
-          "default": 10,
-          "minimum": 1,
-          "maximum": 100
-        }
-      ]
-    },
-    {
-      "key": "security_warnings",
-      "title": "⑧ 安全警告",
-      "description": "以下为安全自检提示，请务必阅读并确认。",
-      "items": [
-        {
-          "key": "_warn_ssh_tunnel",
-          "type": "string",
-          "title": "⚠️ 强烈建议使用 SSH 隧道",
-          "description": "生产环境请通过 ssh -N -R 6190:localhost:6190 建立隧道，避免 WebSocket 端口裸奔公网",
-          "default": "请确认已配置 SSH 隧道或等效加密通道",
-          "readonly": true
-        },
-        {
-          "key": "_warn_short_token",
-          "type": "string",
-          "title": "⚠️ Token 长度检查",
-          "description": "secret_token 应至少 16 位随机字符串，建议使用 openssl rand -hex 32 生成",
-          "default": "请使用足够长的随机 Token",
-          "readonly": true
-        },
-        {
-          "key": "_warn_no_password",
-          "type": "string",
-          "title": "⚠️ 二次密码建议",
-          "description": "启用 admin_password 可为 /win 指令增加一层防护，即使 QQ 号泄露也不至于裸奔",
-          "default": "建议设置二次密码",
-          "readonly": true
-        },
-        {
-          "key": "_warn_require_encryption",
-          "type": "string",
-          "title": "⚠️ 加密连接建议",
-          "description": "生产环境建议启用 require_encryption，强制 Agent 使用 wss:// 连接",
-          "default": "建议启用加密连接",
-          "readonly": true
-        }
-      ]
-    }
-  ]
+  "secret_token": {
+    "type": "string",
+    "description": "[认证] WebSocket 共享密钥，Agent 连接时校验身份。建议 ≥16 位随机字符串。",
+    "default": "change-me-to-a-long-random-token",
+    "minLength": 8,
+    "maxLength": 256
+  },
+  "ws_host": {
+    "type": "string",
+    "description": "[服务端] WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全)。",
+    "default": "127.0.0.1",
+    "enum": ["127.0.0.1", "0.0.0.0", "::1"],
+    "enumDescriptions": ["仅本机(推荐,需SSH隧道)", "全网监听(不安全)", "IPv6 本机"]
+  },
+  "ws_port": {
+    "type": "integer",
+    "description": "[服务端] WebSocket 监听端口。",
+    "default": 6190,
+    "min": 1024,
+    "max": 65535
+  },
+  "ws_path": {
+    "type": "string",
+    "description": "[服务端] WebSocket 路径，可自定义以增加隐蔽性。",
+    "default": "/winremote"
+  },
+  "admin_qq": {
+    "type": "array",
+    "description": "[管理员] 允许使用 /win 指令的 QQ 号白名单。",
+    "default": [],
+    "items": {"type": "integer", "min": 10000, "max": 9999999999}
+  },
+  "allow_group": {
+    "type": "boolean",
+    "description": "[管理员] 是否允许群聊中触发 /win 指令。",
+    "default": false
+  },
+  "admin_password": {
+    "type": "string",
+    "description": "[认证] 二次密码(可选)。留空=不启用;填了之后每条指令需追加 --pwd xxx。",
+    "default": "",
+    "minLength": 0,
+    "maxLength": 128
+  },
+  "password_max_attempts": {
+    "type": "integer",
+    "description": "[认证] 密码最大重试次数,超过则封禁。",
+    "default": 5,
+    "min": 1,
+    "max": 50
+  },
+  "password_ban_duration": {
+    "type": "integer",
+    "description": "[认证] 密码错误封禁时长(秒)。",
+    "default": 300,
+    "min": 60,
+    "max": 86400
+  },
+  "require_encryption": {
+    "type": "boolean",
+    "description": "[安全] 要求加密连接(wss://)。设为 true 时拒绝非加密连接。",
+    "default": false
+  },
+  "heartbeat_interval": {
+    "type": "integer",
+    "description": "[Agent] 心跳发送间隔(秒)。",
+    "default": 15,
+    "min": 5,
+    "max": 300
+  },
+  "heartbeat_timeout": {
+    "type": "integer",
+    "description": "[Agent] 心跳超时判定(秒),超过视为离线。",
+    "default": 45,
+    "min": 10,
+    "max": 600
+  },
+  "max_agents": {
+    "type": "integer",
+    "description": "[Agent] 最大同时连接的 Agent 数量。",
+    "default": 8,
+    "min": 1,
+    "max": 50
+  },
+  "command_whitelist": {
+    "type": "array",
+    "description": "[指令] 命令白名单。仅列表中的命令可执行;为空则配合黑名单使用。",
+    "default": ["shell", "powershell", "screenshot", "key", "mouse", "open", "readfile", "audit"],
+    "items": {"type": "string"}
+  },
+  "command_blacklist": {
+    "type": "array",
+    "description": "[指令] 命令黑名单(永远拒绝)。默认含 rm/del/format/shutdown 等危险命令。",
+    "default": ["rm ", "del ", "format", "shutdown", "reboot", "reg add", "reg delete", "net user", "mkfs", "dd if="],
+    "items": {"type": "string"}
+  },
+  "command_regex_blacklist": {
+    "type": "array",
+    "description": "[指令] 正则黑名单,匹配则拒绝。用于拦截绕过手法(编码/管道等)。",
+    "default": ["powershell\\s+-enc", "cmd\\s+/c\\s+\"", "&&", "\\|\\|", ";\\s*rm", ";\\s*del", "\\$\\(.*\\)", "`"],
+    "items": {"type": "string"}
+  },
+  "allow_powershell": {
+    "type": "boolean",
+    "description": "[指令] 是否允许执行 powershell 指令。",
+    "default": true
+  },
+  "strict_whitelist": {
+    "type": "boolean",
+    "description": "[指令] 严格白名单模式:开启后仅白名单命令可执行,黑名单失效。",
+    "default": false
+  },
+  "path_whitelist": {
+    "type": "array",
+    "description": "[文件] 允许读写的路径白名单(Agent 侧校验)。仅这些目录下的文件可访问。",
+    "default": ["C:\\Temp", "C:\\Users\\Public", "D:\\"],
+    "items": {"type": "string"}
+  },
+  "path_blacklist_keywords": {
+    "type": "array",
+    "description": "[文件] 路径越狱关键词黑名单(服务端+Agent双端校验)。",
+    "default": ["..\\", "../", "%USERPROFILE%", "%SYSTEMROOT%", "C:\\Windows", "C:\\Program Files"],
+    "items": {"type": "string"}
+  },
+  "max_read_bytes": {
+    "type": "integer",
+    "description": "[文件] 单文件最大读取字节数。",
+    "default": 65536,
+    "min": 1024,
+    "max": 10485760
+  },
+  "file_allow_write": {
+    "type": "boolean",
+    "description": "[文件] 是否允许写入文件(默认只读更安全)。",
+    "default": false
+  },
+  "auto_screenshot": {
+    "type": "boolean",
+    "description": "[输出] 指令执行后是否自动附带截图。",
+    "default": true
+  },
+  "screenshot_format": {
+    "type": "string",
+    "description": "[输出] 截图格式。JPEG=文件小,PNG=无损,WebP=折中。",
+    "default": "JPEG",
+    "enum": ["JPEG", "PNG", "WebP"],
+    "enumDescriptions": ["JPEG 压缩小体积", "PNG 无损高质量", "WebP 体积质量折中"]
+  },
+  "screenshot_quality": {
+    "type": "integer",
+    "description": "[输出] 截图质量(1-100),仅 JPEG/WebP 有效。",
+    "default": 75,
+    "min": 1,
+    "max": 100
+  },
+  "max_output_bytes": {
+    "type": "integer",
+    "description": "[输出] 单次命令输出最大字节数。",
+    "default": 8192,
+    "min": 1024,
+    "max": 1048576
+  },
+  "stream_chunk_size": {
+    "type": "integer",
+    "description": "[输出] 流式推送分块大小(字节)。",
+    "default": 1024,
+    "min": 256,
+    "max": 16384
+  },
+  "stream_interval_ms": {
+    "type": "integer",
+    "description": "[输出] 流式推送间隔(毫秒)。",
+    "default": 500,
+    "min": 100,
+    "max": 5000
+  },
+  "shell_timeout": {
+    "type": "integer",
+    "description": "[输出] Shell 命令超时(秒),超时强杀进程。",
+    "default": 30,
+    "min": 5,
+    "max": 600
+  },
+  "audit_enabled": {
+    "type": "boolean",
+    "description": "[审计] 是否记录审计日志。",
+    "default": true
+  },
+  "audit_path": {
+    "type": "string",
+    "description": "[审计] 审计日志文件路径(建议放 data/ 目录)。",
+    "default": "data/winremote_audit.jsonl"
+  },
+  "audit_max_entries": {
+    "type": "integer",
+    "description": "[审计] 审计日志最大保留条数。",
+    "default": 1000,
+    "min": 100,
+    "max": 100000
+  },
+  "audit_rotation_mb": {
+    "type": "integer",
+    "description": "[审计] 审计日志轮转大小(MB)。",
+    "default": 10,
+    "min": 1,
+    "max": 500
+  }
 }

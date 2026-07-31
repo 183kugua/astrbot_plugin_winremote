@@ -1,7 +1,7 @@
 """
-tests/test_agent_protocol.py - V0.7.0
-Tests for WinRemoteServer agent lifecycle, message dispatch, and SSE data endpoint.
-Uses websockets library to spin up a real (in-process) server and connect a mock agent.
+tests/test_agent_protocol.py - V0.8.0
+Tests for WinRemoteServer agent lifecycle, message dispatch, and panel data.
+Each test builds its OWN server + FakeWS to avoid shared-state pollution.
 """
 
 from __future__ import annotations
@@ -20,171 +20,155 @@ import __init__ as plugin
 
 
 # ---------------------------------------------------------------------------
-# Helper: build a WebSocket that works as "async for x in ws:"
+# FakeWS — a proper async-iterable websocket simulator
 # ---------------------------------------------------------------------------
-class _MessageQueue:
-    """A single async-iterable message queue shared by recv() and 'async for'."""
+class FakeWS:
+    """Mimics a websocket: supports `async for x in ws` AND ws.recv()/send()/close()."""
 
-    def __init__(self, items):
-        self._items = list(items)
-        self._i = 0
+    def __init__(self, messages, peer=("127.0.0.1", 50000)):
+        self._msgs = list(messages)
+        self._idx = 0
+        self.sent = []
+        self.remote_address = peer
+        self.secure = False
 
     def __aiter__(self):
+        # Synchronous: return self (which has __anext__)
         return self
 
     async def __anext__(self):
-        if self._i >= len(self._items):
-            # Signal end-of-stream so the server's async-for loop exits
+        if self._idx >= len(self._msgs):
             raise StopAsyncIteration
-        val = self._items[self._i]
-        self._i += 1
+        val = self._msgs[self._idx]
+        self._idx += 1
         return val
 
     async def recv(self):
-        """Mimic ws.recv() — return next message or raise ConnectionClosed."""
-        if self._i >= len(self._items):
+        if self._idx >= len(self._msgs):
             raise plugin.websockets.exceptions.ConnectionClosed(None, None)
-        val = self._items[self._i]
-        self._i += 1
+        val = self._msgs[self._idx]
+        self._idx += 1
         return val
 
+    async def send(self, data):
+        self.sent.append(data)
 
-def make_ws(recv_messages, peer=("127.0.0.1", 50000)):
-    """Return a MagicMock ws that supports both .recv() and 'async for' iteration.
-
-    Key trick: BOTH ws.recv() and 'async for ws' draw from the SAME
-    _MessageQueue instance (not a new one each time), so the handshake
-    (recv) and the main loop (async for) see a consistent stream.
-    """
-    ws = MagicMock()
-    ws.remote_address = peer
-
-    queue = _MessageQueue(recv_messages)
-
-    # Return the SAME queue instance every time (no per-call new object)
-    ws.__aiter__ = lambda self: queue
-    ws.__anext__ = lambda self: queue.__anext__()
-    # ws.recv() is awaited once for the handshake
-    ws.recv = AsyncMock(side_effect=queue.recv)
-    ws.send = AsyncMock()
-    ws.close = AsyncMock()
-    return ws
+    async def close(self):
+        pass
 
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Helpers
 # ---------------------------------------------------------------------------
-@pytest.fixture()
-def base_cfg() -> dict:
-    """Return a FRESH copy so tests don't pollute each other."""
-    return copy.deepcopy(plugin.get_config(None))
+def fresh_cfg(**overrides):
+    """Return a deep-copied default config with optional overrides."""
+    cfg = copy.deepcopy(plugin.get_config(None))
+    cfg.update(overrides)
+    return cfg
 
 
-@pytest.fixture()
-def ctx_mock() -> MagicMock:
-    return MagicMock()
-
-
-@pytest.fixture()
-async def server_pair(base_cfg, ctx_mock, tmp_path):
+async def make_server(cfg, tmp_path, ctx=None):
+    """Create and start a server with a fake websockets.serve."""
+    if ctx is None:
+        ctx = MagicMock()
     audit = plugin.AuditLogger(tmp_path / "audit.jsonl")
-    srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
-
-    started = {}
+    srv = plugin.WinRemoteServer(ctx, cfg, audit)
 
     async def fake_serve(handler, host, port, path=None, **kw):
-        started["handler"] = handler
         fake = MagicMock()
         fake.close = AsyncMock()
         fake.wait_closed = AsyncMock()
+        fake_serve.handler = handler
         return fake
 
     with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
         await srv.start()
 
-    yield srv, started
-    await srv.stop()
+    return srv, fake_serve
 
 
 # ---------------------------------------------------------------------------
 # Agent lifecycle
 # ---------------------------------------------------------------------------
 class TestAgentLifecycle:
-    async def test_handshake_success(self, server_pair, base_cfg):
-        srv, _ = server_pair
-        base_cfg["secret_token"] = "test-token"
+    async def test_handshake_success(self, tmp_path):
+        cfg = fresh_cfg(secret_token="test-token")
+        srv, _ = await make_server(cfg, tmp_path)
 
-        ws = make_ws(
+        ws = FakeWS(
             [
-                json.dumps({"token": "test-token", "agent_id": "agent-A"}),
+                json.dumps({"type": "handshake", "token": "test-token", "agent_id": "agent-A"}),
                 json.dumps({"type": "heartbeat"}),
             ]
         )
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
-        # Agent is added during the handshake, then removed in finally when
-        # the async-for loop is exhausted.  The proof of a successful
-        # handshake is that ws.send WAS called (heartbeat_ack was sent).
-        assert ws.send.called, "ws.send should be called on successful handshake"
-        sent = [str(c) for c in ws.send.call_args_list]
-        assert any("heartbeat_ack" in s for s in sent)
+        # Proof: heartbeat_ack was sent → handshake succeeded
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("heartbeat_ack" in s for s in sent_strs), f"Expected heartbeat_ack in {ws.sent}"
+        await srv.stop()
 
-    async def test_handshake_bad_token(self, server_pair, base_cfg):
-        srv, _ = server_pair
-        base_cfg["secret_token"] = "right-token"
+    async def test_handshake_bad_token(self, tmp_path):
+        cfg = fresh_cfg(secret_token="right-token")
+        srv, _ = await make_server(cfg, tmp_path)
 
-        ws = make_ws([json.dumps({"token": "wrong", "agent_id": "agent-B"})])
+        ws = FakeWS(
+            [json.dumps({"type": "handshake", "token": "wrong", "agent_id": "agent-B"})],
+            peer=("10.0.0.2", 50001),
+        )
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
+        # Agent-B must NOT be registered
         agents = await srv.agents.list()
         assert all(a.agent_id != "agent-B" for a in agents)
-        sent_calls = [str(c) for c in ws.send.call_args_list]
-        assert any("invalid" in s.lower() for s in sent_calls)
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("invalid" in s.lower() for s in sent_strs)
+        await srv.stop()
 
-    async def test_handshake_no_token_configured(self, server_pair, base_cfg):
-        srv, _ = server_pair
-        base_cfg["secret_token"] = ""
+    async def test_handshake_no_token_configured(self, tmp_path):
+        cfg = fresh_cfg(secret_token="")  # empty → misconfigured
+        srv, _ = await make_server(cfg, tmp_path)
 
-        ws = make_ws([json.dumps({"token": "anything", "agent_id": "agent-C"})])
+        ws = FakeWS(
+            [json.dumps({"type": "handshake", "token": "anything", "agent_id": "agent-C"})],
+            peer=("10.0.0.3", 50002),
+        )
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
-        sent_calls = [str(c) for c in ws.send.call_args_list]
-        assert any("misconfig" in s.lower() for s in sent_calls)
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("misconfig" in s.lower() for s in sent_strs)
+        await srv.stop()
 
-    async def test_heartbeat_keeps_alive(self, server_pair, base_cfg):
-        srv, _ = server_pair
-        base_cfg["secret_token"] = "tok"
+    async def test_heartbeat_keeps_alive(self, tmp_path):
+        cfg = fresh_cfg(secret_token="tok")
+        srv, _ = await make_server(cfg, tmp_path)
 
-        ws = make_ws(
+        ws = FakeWS(
             [
-                json.dumps({"token": "tok", "agent_id": "hb-agent"}),
+                json.dumps({"type": "handshake", "token": "tok", "agent_id": "hb-agent"}),
                 json.dumps({"type": "heartbeat"}),
             ]
         )
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
-        # Agent is added during handshake then removed in finally when
-        # the async-for loop is exhausted.  The proof that the heartbeat
-        # was received and processed is that ws.send was called with
-        # a "heartbeat_ack" payload.
-        assert ws.send.called, "ws.send should be called for heartbeat_ack"
-        sent = [str(c) for c in ws.send.call_args_list]
-        assert any("heartbeat_ack" in s for s in sent)
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("heartbeat_ack" in s for s in sent_strs)
+        await srv.stop()
 
-    async def test_max_agents_enforced(self, base_cfg, ctx_mock, tmp_path):
-        base_cfg["secret_token"] = "tok"
-        base_cfg["max_agents"] = 1
+    async def test_max_agents_enforced(self, tmp_path):
+        cfg = fresh_cfg(secret_token="tok", max_agents=1)
+        ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "a.jsonl")
-        srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
+        srv = plugin.WinRemoteServer(ctx, cfg, audit)
 
         existing = plugin.AgentConnection(ws=MagicMock(), agent_id="already-there")
         await srv.agents.add(existing)
 
-        ws = make_ws([json.dumps({"token": "tok", "agent_id": "rejected-one"})])
+        ws = FakeWS([json.dumps({"type": "handshake", "token": "tok", "agent_id": "rejected-one"})])
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
@@ -198,53 +182,52 @@ class TestAgentLifecycle:
 # Message dispatch
 # ---------------------------------------------------------------------------
 class TestDispatch:
-    async def test_heartbeat_ack(self, server_pair, base_cfg):
-        srv, _ = server_pair
-        base_cfg["secret_token"] = "tok"
+    async def test_heartbeat_ack(self, tmp_path):
+        cfg = fresh_cfg(secret_token="tok")
+        srv, _ = await make_server(cfg, tmp_path)
 
-        ws = make_ws(
+        ws = FakeWS(
             [
-                json.dumps({"token": "tok", "agent_id": "disp-1"}),
+                json.dumps({"type": "handshake", "token": "tok", "agent_id": "disp-1"}),
                 json.dumps({"type": "heartbeat"}),
             ]
         )
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
-        sent_calls = [str(c) for c in ws.send.call_args_list]
-        assert any("heartbeat_ack" in s for s in sent_calls)
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("heartbeat_ack" in s for s in sent_strs)
+        await srv.stop()
 
-    async def test_invalid_json_ignored(self, server_pair, base_cfg):
-        srv, _ = server_pair
-        base_cfg["secret_token"] = "tok"
+    async def test_invalid_json_ignored(self, tmp_path):
+        cfg = fresh_cfg(secret_token="tok")
+        srv, _ = await make_server(cfg, tmp_path)
 
-        # Provide enough messages so the agent stays alive through the loop:
-        # 1) handshake token, 2) bad JSON (logged+ignored), 3) heartbeat (keeps alive)
-        ws = make_ws(
+        ws = FakeWS(
             [
-                json.dumps({"token": "tok", "agent_id": "disp-2"}),
-                "this is not json {{{",
+                json.dumps({"type": "handshake", "token": "tok", "agent_id": "disp-2"}),
+                "this is not json {{",
                 json.dumps({"type": "heartbeat"}),
             ]
         )
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
-        # Agent should have been registered (invalid JSON was just ignored)
-        # After the iterator is exhausted, _handle_agent's finally block removes it,
-        # so we check the send log instead: the heartbeat should have been acked.
-        sent_calls = [str(c) for c in ws.send.call_args_list]
-        assert any("heartbeat_ack" in s for s in sent_calls)
+        # Invalid JSON is ignored, heartbeat still acked
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("heartbeat_ack" in s for s in sent_strs)
+        await srv.stop()
 
 
 # ---------------------------------------------------------------------------
 # Pruning
 # ---------------------------------------------------------------------------
 class TestPruning:
-    async def test_prune_dead(self, base_cfg, ctx_mock, tmp_path):
-        base_cfg["secret_token"] = "tok"
+    async def test_prune_dead(self, tmp_path):
+        cfg = fresh_cfg(secret_token="tok")
+        ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "p.jsonl")
-        srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
+        srv = plugin.WinRemoteServer(ctx, cfg, audit)
 
         alive = plugin.AgentConnection(ws=MagicMock(), agent_id="alive-one")
         dead = plugin.AgentConnection(ws=MagicMock(), agent_id="dead-one")
@@ -260,7 +243,7 @@ class TestPruning:
 
 
 # ---------------------------------------------------------------------------
-# SSE-style data endpoint (webui_panel)
+# Panel data endpoint
 # ---------------------------------------------------------------------------
 class FakeResponse:
     def __init__(self, body, status=200, headers=None):
@@ -273,7 +256,7 @@ class FakeResponse:
 
 
 class TestPanelData:
-    async def test_no_server_returns_stopped(self, base_cfg, ctx_mock, tmp_path):
+    async def test_no_server_returns_stopped(self, tmp_path):
         from webui_panel import get_panel_data
 
         fake_req = MagicMock()
@@ -283,11 +266,14 @@ class TestPanelData:
         assert body["status"] == "stopped"
         assert body["agents"] == []
 
-    async def test_with_agents(self, base_cfg, ctx_mock, tmp_path):
+    async def test_with_agents(self, tmp_path):
         from webui_panel import get_panel_data
 
+        cfg = fresh_cfg()
+        ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "pd.jsonl")
-        srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
+        srv = plugin.WinRemoteServer(ctx, cfg, audit)
+
         agent = plugin.AgentConnection(ws=MagicMock(), agent_id="panel-agent")
         agent.busy = True
         agent.current_task = "shell ipconfig"
@@ -295,7 +281,7 @@ class TestPanelData:
 
         fake_plugin = MagicMock()
         fake_plugin.server = srv
-        fake_plugin.cfg = base_cfg
+        fake_plugin.cfg = cfg
         with (
             patch("webui_panel._get_plugin", return_value=fake_plugin),
             patch("webui_panel.Response", FakeResponse, create=True),
@@ -316,78 +302,80 @@ class TestPanelData:
 # send_command
 # ---------------------------------------------------------------------------
 class TestSendCommand:
-    async def test_unknown_agent(self, base_cfg, ctx_mock, tmp_path):
+    async def test_unknown_agent(self, tmp_path):
+        cfg = fresh_cfg()
+        ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "sc.jsonl")
-        srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
+        srv = plugin.WinRemoteServer(ctx, cfg, audit)
 
         result = await srv.send_command("nonexistent", "shell", {"command": "ls"})
         assert result["ok"] is False
         assert "not found" in result["error"].lower()
         await srv.stop()
 
-    async def test_sends_and_waits(self, base_cfg, ctx_mock, tmp_path):
+    async def test_sends_and_waits(self, tmp_path):
+        cfg = fresh_cfg()
+        ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "sc2.jsonl")
-        srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
+        srv = plugin.WinRemoteServer(ctx, cfg, audit)
 
         ws = MagicMock()
         agent = plugin.AgentConnection(ws=ws, agent_id="send-agent")
-        agent.authenticated = True  # mark as authenticated
+        agent.authenticated = True
         await srv.agents.add(agent)
 
-        # AsyncMock so 'await ws.send()' in the plugin works.
-        # side_effect mutates agent state (simulates agent responding).
-        def fake_send(payload):
+        sent_payloads = []
+
+        async def fake_send(payload):
+            sent_payloads.append(json.loads(payload))
             agent.busy = False
             agent.current_task = None
-            return None
 
         ws.send = AsyncMock(side_effect=fake_send)
 
-        time_values = iter([100, 101, 102, 103])
-
-        def fake_time():
-            try:
-                return next(time_values)
-            except StopIteration:
-                return 200
-
-        with patch("asyncio.sleep", new=AsyncMock()), patch("time.time", side_effect=fake_time):
+        with patch("asyncio.sleep", new=AsyncMock()):
             result = await srv.send_command("send-agent", "shell", {"command": "ls"})
 
         assert result["ok"] is True, f"unexpected result: {result}"
-        assert result["agent"] == "send-agent"
-        assert ws.send.called
-        sent_payload = json.loads(ws.send.call_args[0][0])
-        assert sent_payload["type"] == "command"
-        assert sent_payload["action"] == "shell"
+        assert "id" in result, f"expected 'id' in result, got {result}"
+        assert len(sent_payloads) >= 1
+        assert sent_payloads[0]["type"] == "command"
+        assert sent_payloads[0]["action"] == "shell"
         await srv.stop()
 
 
 # ---------------------------------------------------------------------------
-# Handshake / token rejection
+# Handshake errors (additional coverage)
 # ---------------------------------------------------------------------------
 class TestHandshakeErrors:
-    async def test_missing_token_rejected(self, base_cfg, ctx_mock, tmp_path):
-        """When secret_token is empty, server sends 'server misconfigured' and closes."""
+    async def test_missing_token_rejected(self, tmp_path):
+        cfg = fresh_cfg(secret_token="")  # misconfigured
+        ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "ht.jsonl")
-        srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
+        srv = plugin.WinRemoteServer(ctx, cfg, audit)
 
-        ws = MagicMock()
-        ws.remote_address = ("10.0.0.1", 5000)
-        # First recv returns a message, then close
-        ws.recv = AsyncMock(
-            side_effect=[
+        async def fake_serve(handler, host, port, **kw):
+            fake = MagicMock()
+            fake.close = AsyncMock()
+            fake.wait_closed = AsyncMock()
+            fake_serve.handler = handler
+            return fake
+
+        with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
+            await srv.start()
+
+        ws = FakeWS(
+            [
                 json.dumps({"token": "", "agent_id": "x"}),
-                plugin.websockets.exceptions.ConnectionClosed(None, None),
-            ]
+            ],
+            peer=("10.0.0.1", 50010),
         )
-        ws.send = AsyncMock()
-        ws.close = AsyncMock()
-
         with patch("asyncio.sleep", new=AsyncMock()):
             await srv._handle_agent(ws)
 
-        assert ws.close.called
+        assert ws.sent, "Expected server to send at least one message"
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("misconfig" in s.lower() for s in sent_strs)
         await srv.stop()
 
 

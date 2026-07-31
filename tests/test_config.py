@@ -1,5 +1,5 @@
 """
-tests/test_config.py - V0.7.0
+tests/test_config.py - V0.8.0
 Tests for configuration loading, command/path validation, and audit logger.
 """
 
@@ -61,14 +61,21 @@ class TestGetConfig:
         cfg = plugin.get_config({"not_a_real_key": 42})
         assert "not_a_real_key" not in cfg
 
-    def test_attribute_like_input(self, monkeypatch: pytest.Monkeypatch) -> None:
-        """Simulate AstrBotConfig object with attributes via _config dict."""
-        fake = MagicMock()
-        fake._config = {"secret_token": "tok", "ws_port": 1234, "onexist": "x"}
+    def test_attribute_like_input(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Simulate AstrBotConfig object with _config dict."""
+
+        class FakeCfg:
+            def __init__(self, d):
+                self._config = d
+
+            def get(self, key, default=None):
+                return self._config.get(key, default)
+
+        fake = FakeCfg({"secret_token": "tok", "ws_port": 1234, "nonexist": "x"})
         cfg = plugin.get_config(fake)
         assert cfg["secret_token"] == "tok"
         assert cfg["ws_port"] == 1234
-        assert "onexist" not in cfg
+        assert "nonexist" not in cfg
 
 
 # ---------------------------------------------------------------------------
@@ -87,11 +94,10 @@ class TestValidateCommand:
     def test_blacklist_rm(self, default_cfg: dict) -> None:
         ok, reason = plugin.validate_command("shell rm -rf /", default_cfg)
         assert ok is False
-        # blacklist hits before injection check
+        # blacklist "rm " is hit first
         assert "blacklist" in reason
 
     def test_injection_semicolon(self, default_cfg: dict) -> None:
-        # "rm" is in command_blacklist, so it gets caught as blacklist first.
         # Use a command without blacklisted words to test injection detection.
         ok, reason = plugin.validate_command("shell ls; cat /etc/passwd", default_cfg)
         assert ok is False
@@ -137,7 +143,9 @@ class TestValidatePath:
         assert "forbidden" in reason
 
     def test_no_whitelist_passes(self, default_cfg: dict) -> None:
-        ok, _ = plugin.validate_path("C:\\anything.txt", default_cfg)
+        # When path_whitelist is empty, validation passes for any non-empty path
+        cfg = {**default_cfg, "path_whitelist": []}
+        ok, _ = plugin.validate_path("C:\\anything.txt", cfg)
         assert ok is True
 
 
@@ -150,21 +158,24 @@ class TestPasswordGuard:
 
     async def test_correct_password(self) -> None:
         g = await self._make_guard()
-        ok = await g.check("1.2.3.4", "secret", "secret")
+        ok, reason = await g.check("1.2.3.4", "secret", "secret")
         assert ok is True
+        assert reason == ""
         assert await g.is_banned("1.2.3.4") is False
 
     async def test_wrong_password_then_ban(self) -> None:
         g = await self._make_guard()
         for _ in range(3):
-            await g.check("5.6.7.8", "wrong", "secret")
+            ok, reason = await g.check("5.6.7.8", "wrong", "secret")
+            assert ok is False
         banned = await g.is_banned("5.6.7.8")
         assert banned is True
 
     async def test_reset_on_success(self) -> None:
         g = await self._make_guard()
         await g.check("9.9.9.9", "wrong", "secret")
-        await g.check("9.9.9.9", "secret", "secret")
+        ok, _ = await g.check("9.9.9.9", "secret", "secret")
+        assert ok is True
         # After success, attempts should be cleared
         assert "9.9.9.9" not in g._attempts
 

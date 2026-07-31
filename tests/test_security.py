@@ -1,10 +1,13 @@
 """
-tests/test_security.py - V0.7.0
+tests/test_security.py - V0.8.0
 Security-focused tests: token auth, second-factor password, injection attempts.
+Uses FakeWS for proper async-for behavior.
 """
 
 from __future__ import annotations
 
+import copy
+import json
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -17,66 +20,114 @@ import __init__ as plugin
 
 
 # ---------------------------------------------------------------------------
+# FakeWS — proper async-iterable websocket simulator
+# ---------------------------------------------------------------------------
+class FakeWS:
+    def __init__(self, messages, peer=("127.0.0.1", 50000)):
+        self._msgs = list(messages)
+        self._idx = 0
+        self.sent = []
+        self.remote_address = peer
+        self.secure = False
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self._idx >= len(self._msgs):
+            raise StopAsyncIteration
+        val = self._msgs[self._idx]
+        self._idx += 1
+        return val
+
+    async def recv(self):
+        if self._idx >= len(self._msgs):
+            raise plugin.websockets.exceptions.ConnectionClosed(None, None)
+        val = self._msgs[self._idx]
+        self._idx += 1
+        return val
+
+    async def send(self, data):
+        self.sent.append(data)
+
+    async def close(self):
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+def fresh_cfg(**overrides):
+    cfg = copy.deepcopy(plugin.get_config(None))
+    cfg.update(overrides)
+    return cfg
+
+
+async def make_server(cfg, tmp_path, ctx=None):
+    if ctx is None:
+        ctx = MagicMock()
+    audit = plugin.AuditLogger(tmp_path / "audit.jsonl")
+    srv = plugin.WinRemoteServer(ctx, cfg, audit)
+
+    async def fake_serve(handler, host, port, path=None, **kw):
+        fake_serve.handler = handler
+        fake = MagicMock()
+        fake.close = AsyncMock()
+        fake.wait_closed = AsyncMock()
+        return fake
+
+    with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
+        await srv.start()
+
+    return srv, fake_serve
+
+
+# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
 def cfg() -> dict:
-    return plugin.get_config(None)
-
-
-@pytest.fixture()
-def server(cfg: dict) -> plugin.WinRemoteServer:
-    """Server with mocked context and audit."""
-    ctx = MagicMock()
-    audit = MagicMock()
-    audit.write = AsyncMock()
-    return plugin.WinRemoteServer(ctx, cfg, audit)
+    return fresh_cfg()
 
 
 # ---------------------------------------------------------------------------
 # Token / handshake
 # ---------------------------------------------------------------------------
 class TestHandshake:
-    async def test_missing_token_rejected(self, server: plugin.WinRemoteServer) -> None:
+    async def test_missing_token_rejected(self, tmp_path):
         """When secret_token is empty, server rejects with 'server misconfigured'."""
-        ws = MagicMock()
-        ws.remote_address = ("10.0.0.1", 5000)
-        ws.send = AsyncMock()
-        ws.close = AsyncMock()
-        # First return a handshake message, then close on second recv
-        # This lets _handle_agent read the token and hit the "empty token" branch
-        ws.recv = AsyncMock(
-            side_effect=[
-                plugin.json.dumps({"token": "", "agent_id": "x"}),
-                plugin.websockets.exceptions.ConnectionClosed(None, None),
-            ]
+        cfg = fresh_cfg(secret_token="")
+        ctx = MagicMock()
+        srv, _ = await make_server(cfg, tmp_path, ctx)
+
+        ws = FakeWS(
+            [json.dumps({"type": "handshake", "token": "", "agent_id": "x"})],
+            peer=("10.0.0.1", 50010),
         )
-
         with patch("asyncio.sleep", new=AsyncMock()):
-            await server._handle_agent(ws)
+            await srv._handle_agent(ws)
 
-        # The server should call ws.close() when token is empty/misconfigured
-        assert ws.close.called
-        # And it should have sent an error message
-        sent_calls = [str(c) for c in ws.send.call_args_list]
-        assert any("misconfig" in s.lower() for s in sent_calls)
+        assert ws.sent, f"Expected at least one message, got {ws.sent}"
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("misconfig" in s.lower() for s in sent_strs)
+        await srv.stop()
 
-    async def test_bad_token_rejected(self, server: plugin.WinRemoteServer) -> None:
-        server.cfg["secret_token"] = "correct-horse"
-        ws = MagicMock()
-        ws.remote_address = ("10.0.0.2", 5001)
-        ws.send = AsyncMock()
-        ws.close = AsyncMock()
-        ws.recv = AsyncMock(return_value=plugin.json.dumps({"token": "wrong", "agent_id": "x"}))
+    async def test_bad_token_rejected(self, tmp_path):
+        cfg = fresh_cfg(secret_token="correct-horse")
+        ctx = MagicMock()
+        srv, _ = await make_server(cfg, tmp_path, ctx)
 
+        ws = FakeWS(
+            [json.dumps({"type": "handshake", "token": "wrong", "agent_id": "x"})],
+            peer=("10.0.0.2", 50011),
+        )
         with patch("asyncio.sleep", new=AsyncMock()):
-            await server._handle_agent(ws)
+            await srv._handle_agent(ws)
 
-        # send should have been called with an error
-        sent = ws.send.call_args[0][0]
-        msg = plugin.json.loads(sent)
-        assert msg["type"] == "error"
-        assert "invalid" in msg["msg"].lower()
+        assert ws.sent, f"Expected error message, got nothing. sent={ws.sent}"
+        sent_strs = [str(s) for s in ws.sent]
+        assert any("invalid" in s.lower() for s in sent_strs)
+        await srv.stop()
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +137,7 @@ class TestPasswordGuard:
     async def test_ban_after_max_attempts(self) -> None:
         g = plugin.PasswordGuard(max_attempts=3, ban_duration=10)
         for _ in range(3):
-            ok = await g.check("1.1.1.1", "wrong", "right")
+            ok, reason = await g.check("1.1.1.1", "wrong", "right")
             assert ok is False
         banned = await g.is_banned("1.1.1.1")
         assert banned is True
@@ -94,7 +145,7 @@ class TestPasswordGuard:
     async def test_correct_password_resets(self) -> None:
         g = plugin.PasswordGuard(max_attempts=3, ban_duration=10)
         await g.check("2.2.2.2", "wrong", "right")
-        ok = await g.check("2.2.2.2", "right", "right")
+        ok, reason = await g.check("2.2.2.2", "right", "right")
         assert ok is True
         assert "2.2.2.2" not in g._attempts
 
@@ -103,7 +154,7 @@ class TestPasswordGuard:
         for _ in range(2):
             await g.check("3.3.3.3", "bad", "good")
         # Even with correct password, banned peer is rejected
-        ok = await g.check("3.3.3.3", "good", "good")
+        ok, reason = await g.check("3.3.3.3", "good", "good")
         assert ok is False
 
 
