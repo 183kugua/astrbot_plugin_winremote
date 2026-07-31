@@ -1,0 +1,61 @@
+{
+  "plugin": {
+    "name": "WinRemote",
+    "description": "Remote control Windows host via QQ: shell, screenshot, mouse/keyboard, file I/O"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "Remote Dashboard",
+      "description": "Real-time Agent status, heartbeat & current task",
+      "online": "Online",
+      "offline": "Offline",
+      "busy": "Busy",
+      "current_task": "Current Task",
+      "heartbeat": "Heartbeat",
+      "hostname": "Hostname",
+      "username": "User",
+      "total": "Total",
+      "last_update": "Last Update"
+    },
+    "settings": {
+      "title": "Advanced Settings",
+      "description": "Visually edit all WinRemote config items",
+      "save": "Save Config",
+      "test": "Test Connection",
+      "saved": "Config saved",
+      "save_failed": "Save failed",
+      "test_ok": "Connection OK",
+      "test_fail": "Connection failed",
+      "loading": "Loading..."
+    },
+    "logs": {
+      "title": "Audit Logs",
+      "description": "View and export remote command records",
+      "export": "Export Logs",
+      "total": "Total",
+      "page": "Page",
+      "all_agents": "All Agents",
+      "all_actions": "All Actions",
+      "no_match": "No matching records",
+      "time": "Time",
+      "qq": "QQ",
+      "agent": "Agent",
+      "action": "Action",
+      "result": "Result",
+      "status": "Status"
+    },
+    "panel": {
+      "title": "Agent Status",
+      "description": "Main panel widget, auto-refresh every 5s",
+      "online": "Online",
+      "offline": "Offline",
+      "busy": "Busy",
+      "ping": "Ping Test",
+      "ping_ok": "Latency {ms}ms",
+      "ping_fail": "Ping failed",
+      "no_agent": "No online Agent",
+      "refresh": "Refresh",
+      "last_update": "Last Update"
+    }
+  }
+}
