@@ -1,21 +1,15 @@
 """
-astrbot_plugin_winremote.py — AStrBot V0.9.3 唯一真源
+astrbot_plugin_winremote.py — AStrBot V0.9.4 唯一真源
 ======================================================
 AStrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
   main.py  或  astrbot_plugin_winremote.py
-本文件满足第二种命名约定，作为插件入口被直接 import。
+本文件满足两种命名约定，main.py 作为薄壳入口。
 
-V0.9.3 关键修复：
-- _conf_schema.json 改为分组级 description 结构：
-  每个分组是 {"type":"object","title":"...","description":"...","fields":{...}}
-  description 和 title 是同级兄弟节点，AStrBot 在标题下方
-  独立渲染一段灰色说明文字（换行、多句），不再和标题挤同一行。
-- 字段级 description 只保留简短 placeholder，分组级写完整介绍。
-- 严格对齐官方示例格式：
-    "title": "<标题>",
-    "description": "<介绍>"
-  作为同级兄弟节点。
-- 结构改用 "groups" 数组包裹，每个元素是一个完整分组对象。
+V0.9.4 过审版关键修复：
+- _conf_schema.json 完全重写，使用 items 替代 fields
+- 所有 type 符合白名单（int/bool/string/list/object）
+- __init__签名修正为 def __init__(self, context: Context, config: AstrBotConfig)
+- 消除所有 self.context.config 引用，统一用 self.config.get()
 
 历史修复（已稳定）：
 - V0.9.1：消除所有 context.config 引用。
@@ -87,6 +81,7 @@ except ImportError:  # pragma: no cover
 try:
     from astrbot.api import AstrBotConfig
     from astrbot.api import logger as ab_logger
+    from astrbot.api.star import Context
     from astrbot.core.star.star_handler import (
         CommandType,
         EventType,
@@ -99,6 +94,7 @@ try:
 except ImportError:  # pragma: no cover
     AstrBotConfig = dict
     ab_logger = None
+    Context = Any
 
     def register(*a, **kw):
         def deco(cls):
@@ -301,11 +297,19 @@ class PasswordGuard:
 class AuditLogger:
     def __init__(
         self,
-        path: str = "data/winremote_audit.jsonl",
+        path: str = None,
         max_entries: int = AUDIT_MAX,
         rotation_mb: int = 10,
     ):
-        self.path = path
+        from astrbot.core.star.star_tools import get_data_dir
+
+        # 默认路径：plugin_name/data/audit.jsonl
+        if path is None or not path.startswith("/"):
+            plugin_data_dir = get_data_dir("astrbot_plugin_winremote")
+            os.makedirs(plugin_data_dir, exist_ok=True)
+            self.path = os.path.join(plugin_data_dir, "winremote_audit.jsonl")
+        else:
+            self.path = path
         self.max_entries = max_entries
         self.rotation_mb = rotation_mb
         self._buf: deque = deque(maxlen=max_entries)
@@ -313,9 +317,11 @@ class AuditLogger:
 
     def _full_path(self) -> str:
         p = self.path
-        if not isinstance(p, str) or not p.startswith("/"):
-            data_dir = os.environ.get("ASTRBOT_DATA_DIR", "data")
-            p = os.path.join(data_dir, p)
+        # 已经是完整路径（get_data_dir 返回绝对路径）
+        if not os.path.isabs(p):
+            from astrbot.core.star.star_tools import get_data_dir
+            data_dir = get_data_dir("astrbot_plugin_winremote")
+            p = os.path.join(data_dir, p.lstrip("/"))
         os.makedirs(os.path.dirname(p) or ".", exist_ok=True)
         return p
 
@@ -756,14 +762,15 @@ class WinRemoteServer:
 class WinRemotePlugin:
     """AstrBot 插件壳：持有 WinRemoteServer"""
 
-    def __init__(self, context=None):
+    def __init__(self, context: Context, config: AstrBotConfig):
+
+        super().__init__(context)
         self.context = context
-        # 注意：AstrBot 的 Context 没有 .config 属性
-        # 配置由 WinRemoteServer 自己从 data/config/_config.json 加载
-        cfg_obj = None
+        self.config = config
+        # 配置由 AstrBot 注入到 config 参数
         self.server = WinRemoteServer(
             context=context,
-            config=cfg_obj,
+            config=self.config.get("_config", {}),
         )
         # 快捷引用
         self.agents = self.server.agents
