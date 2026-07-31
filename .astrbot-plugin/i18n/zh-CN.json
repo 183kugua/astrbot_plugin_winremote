@@ -1,0 +1,63 @@
+{
+  "plugin": {
+    "name": "WinRemote",
+    "description": "通过 QQ 远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "远控面板",
+      "description": "实时查看 Agent 状态、心跳与当前任务",
+      "online": "在线",
+      "offline": "离线",
+      "busy": "忙碌",
+      "current_task": "当前任务",
+      "heartbeat": "心跳",
+      "hostname": "主机名",
+      "username": "用户",
+      "total": "总数",
+      "last_update": "最后更新"
+    },
+    "settings": {
+      "title": "高级配置",
+      "description": "可视化编辑 WinRemote 全部配置项",
+      "save": "保存配置",
+      "test": "测试连接",
+      "saved": "配置已保存",
+      "save_failed": "保存失败",
+      "test_ok": "连接成功",
+      "test_fail": "连接失败",
+      "loading": "加载中...",
+      "agent": "Agent",
+      "latency": "延迟"
+    },
+    "logs": {
+      "title": "审计日志",
+      "description": "查看与导出远程指令执行记录",
+      "export": "导出日志",
+      "total": "总条数",
+      "page": "页",
+      "all_agents": "全部 Agent",
+      "all_actions": "全部动作",
+      "no_match": "没有匹配的日志记录",
+      "time": "时间",
+      "qq": "QQ",
+      "agent": "Agent",
+      "action": "动作",
+      "result": "结果",
+      "status": "状态"
+    },
+    "panel": {
+      "title": "Agent 状态",
+      "description": "主面板小组件，5 秒自动刷新",
+      "online": "在线",
+      "offline": "离线",
+      "busy": "忙碌",
+      "ping": "延迟测试",
+      "ping_ok": "延迟 {ms}ms",
+      "ping_fail": "Ping 失败",
+      "no_agent": "暂无在线 Agent",
+      "refresh": "刷新",
+      "last_update": "最后更新"
+    }
+  }
+}
