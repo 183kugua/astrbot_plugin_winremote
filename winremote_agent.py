@@ -22,7 +22,7 @@ from pathlib import Path  # noqa: E402
 # 配置（命令行参数优先，其次环境变量，最后默认值）
 # ============================================================
 def parse_args():
-    p = argparse.ArgumentParser(description="WinRemote Agent V0.8.0")
+    p = argparse.ArgumentParser(description="WinRemote Agent V0.8.1")
     p.add_argument(
         "--server", default=os.getenv("WINREMOTE_SERVER", "ws://127.0.0.1:6190/winremote")
     )

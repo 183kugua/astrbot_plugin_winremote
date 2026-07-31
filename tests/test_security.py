@@ -1,5 +1,5 @@
 """
-tests/test_security.py - V0.8.0
+tests/test_security.py - V0.8.1
 Security-focused tests: token auth, second-factor password, injection attempts.
 Uses FakeWS for proper async-for behavior.
 """

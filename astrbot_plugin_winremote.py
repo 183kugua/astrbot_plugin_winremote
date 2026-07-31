@@ -1,11 +1,19 @@
 """
-astrbot_plugin_winremote.py — AstrBot V0.8.0 唯一真源
+astrbot_plugin_winremote.py — AStrBot V0.8.1 唯一真源
 ======================================================
 AstrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
   main.py  或  astrbot_plugin_winremote.py
 本文件满足第二种命名约定，作为插件入口被直接 import。
 
-V0.8.0 关键修复：
+V0.8.1 关键修复：
+- _conf_schema.json 所有 "type": "integer" → "type": "int"
+  根因：AStrBot 的 _parse_schema 支持的类型只有
+  int/float/bool/string/text/list/file/object/template_list/dict，
+  没有 "integer"。之前写成 "integer" 导致
+  "不受支持的配置类型 integer" 错误。
+- 与 V0.8.1 的扁平结构配合，schema 现在完全合规。
+
+V0.8.1 关键修复：
 - _conf_schema.json 改为 AstrBot 认的扁平结构（不再用分组嵌套）
   根因：AstrBot 的 _parse_schema 只认一层 key→object 扁平结构，
   之前 8 大分组嵌套导致 "string indices must be integers" 错误。
@@ -96,7 +104,7 @@ except ImportError:  # pragma: no cover
 # 常量
 # ============================================================
 PLUGIN_NAME = "astrbot_plugin_winremote"
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 
 DANGEROUS_KEYWORDS = [
     "rm ",

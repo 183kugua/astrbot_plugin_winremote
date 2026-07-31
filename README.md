@@ -1,4 +1,4 @@
-# WinRemote V0.8.0 - AstrBot Remote Control Windows Plugin
+# WinRemote V0.8.1 - AstrBot Remote Control Windows Plugin
 
 通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。
 
@@ -21,11 +21,11 @@
                                               |- file read/write (path whitelist)
 ```
 
-## 文件结构 (V0.8.0)
+## 文件结构 (V0.8.1)
 
 ```
 astrbot_plugin_winremote/
-├── astrbot_plugin_winremote.py  ✨ V0.8.0 入口：AstrBot 加载器认这个文件名
+├── astrbot_plugin_winremote.py  ✨ V0.8.1 入口：AstrBot 加载器认这个文件名
 ├── metadata.yaml               # AstrBot 插件身份证（必须，name 与目录一致）
 ├── .gitignore               # Git 忽略规则
 ├── LICENSE                  # GNU AGPL-3.0
@@ -213,13 +213,13 @@ ruff format .          # auto-format
 
 ## 升级历史
 
-### V0.8.0 (当前)
+### V0.8.1 (当前)
 - ✨ **根因修复**：`_conf_schema.json` 改为 AstrBot 认的扁平结构（不再用分组嵌套）
 - ✅ 修复 `string indices must be integers, not 'str'` 加载错误
 - ✅ AstrBot `_parse_schema` 现在能正确解析所有 38 个配置项
 - ✅ 加 `from __future__ import annotations` 兼容 Python 3.10
 - ✅ 保留薄壳 `__init__.py` 供 tests 用 `from astrbot_plugin_winremote import ...`
-- ✅ 版本号全文件统一 V0.8.0（py / toml / VERSION / README / bat）
+- ✅ 版本号全文件统一 V0.8.1（py / toml / VERSION / README / bat）
 - ✅ 测试 52 个全部通过（FakeWS 替代 MagicMock 解决 async-for 兼容性问题）
 - ✅ 修复 `PasswordGuard` 封禁优先级（banned 状态先于密码校验）
 - ✅ 扩大 `INJECTION_CHARS` 覆盖 `| `、`>`、`<`、`>>`、`<<`

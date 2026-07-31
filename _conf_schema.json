@@ -14,7 +14,7 @@
     "enumDescriptions": ["仅本机(推荐,需SSH隧道)", "全网监听(不安全)", "IPv6 本机"]
   },
   "ws_port": {
-    "type": "integer",
+    "type": "int",
     "description": "[服务端] WebSocket 监听端口。",
     "default": 6190,
     "min": 1024,
@@ -29,7 +29,7 @@
     "type": "array",
     "description": "[管理员] 允许使用 /win 指令的 QQ 号白名单。",
     "default": [],
-    "items": {"type": "integer", "min": 10000, "max": 9999999999}
+    "items": {"type": "int", "min": 10000, "max": 9999999999}
   },
   "allow_group": {
     "type": "boolean",
@@ -44,14 +44,14 @@
     "maxLength": 128
   },
   "password_max_attempts": {
-    "type": "integer",
+    "type": "int",
     "description": "[认证] 密码最大重试次数,超过则封禁。",
     "default": 5,
     "min": 1,
     "max": 50
   },
   "password_ban_duration": {
-    "type": "integer",
+    "type": "int",
     "description": "[认证] 密码错误封禁时长(秒)。",
     "default": 300,
     "min": 60,
@@ -63,21 +63,21 @@
     "default": false
   },
   "heartbeat_interval": {
-    "type": "integer",
+    "type": "int",
     "description": "[Agent] 心跳发送间隔(秒)。",
     "default": 15,
     "min": 5,
     "max": 300
   },
   "heartbeat_timeout": {
-    "type": "integer",
+    "type": "int",
     "description": "[Agent] 心跳超时判定(秒),超过视为离线。",
     "default": 45,
     "min": 10,
     "max": 600
   },
   "max_agents": {
-    "type": "integer",
+    "type": "int",
     "description": "[Agent] 最大同时连接的 Agent 数量。",
     "default": 8,
     "min": 1,
@@ -124,7 +124,7 @@
     "items": {"type": "string"}
   },
   "max_read_bytes": {
-    "type": "integer",
+    "type": "int",
     "description": "[文件] 单文件最大读取字节数。",
     "default": 65536,
     "min": 1024,
@@ -148,35 +148,35 @@
     "enumDescriptions": ["JPEG 压缩小体积", "PNG 无损高质量", "WebP 体积质量折中"]
   },
   "screenshot_quality": {
-    "type": "integer",
+    "type": "int",
     "description": "[输出] 截图质量(1-100),仅 JPEG/WebP 有效。",
     "default": 75,
     "min": 1,
     "max": 100
   },
   "max_output_bytes": {
-    "type": "integer",
+    "type": "int",
     "description": "[输出] 单次命令输出最大字节数。",
     "default": 8192,
     "min": 1024,
     "max": 1048576
   },
   "stream_chunk_size": {
-    "type": "integer",
+    "type": "int",
     "description": "[输出] 流式推送分块大小(字节)。",
     "default": 1024,
     "min": 256,
     "max": 16384
   },
   "stream_interval_ms": {
-    "type": "integer",
+    "type": "int",
     "description": "[输出] 流式推送间隔(毫秒)。",
     "default": 500,
     "min": 100,
     "max": 5000
   },
   "shell_timeout": {
-    "type": "integer",
+    "type": "int",
     "description": "[输出] Shell 命令超时(秒),超时强杀进程。",
     "default": 30,
     "min": 5,
@@ -193,14 +193,14 @@
     "default": "data/winremote_audit.jsonl"
   },
   "audit_max_entries": {
-    "type": "integer",
+    "type": "int",
     "description": "[审计] 审计日志最大保留条数。",
     "default": 1000,
     "min": 100,
     "max": 100000
   },
   "audit_rotation_mb": {
-    "type": "integer",
+    "type": "int",
     "description": "[审计] 审计日志轮转大小(MB)。",
     "default": 10,
     "min": 1,
