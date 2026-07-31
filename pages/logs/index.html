@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinRemote 审计日志</title>
+<style>
+  :root[data-theme="dark"] {
+    --bg: #1e1e2e; --card: #181825; --fg: #cdd6f4;
+    --accent: #89b4fa; --success: #a6e3a1; --danger: #f38ba8;
+    --warn: #f9e2af; --border: #313244; --muted: #6c7086; --input: #11111b;
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --card: #f9fafb; --fg: #1e1e2e;
+    --accent: #2563eb; --success: #16a34a; --danger: #dc2626;
+    --warn: #d97706; --border: #e5e7eb; --muted: #6b7280; --input: #f3f4f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); padding: 20px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 1.3rem; }
+  .header .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--accent); color: #fff; margin-left: 8px; }
+  .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .controls select, .controls input {
+    background: var(--input); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; color: var(--fg); font-size: 0.85rem;
+  }
+  .btn { padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-success { background: var(--success); color: #1e1e2e; }
+  .btn:hover { opacity: 0.85; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 8px 12px; text-align: left; font-size: 0.82rem; border-bottom: 1px solid var(--border); }
+  th { background: var(--input); font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+  tr:hover td { background: var(--input); }
+  .pagination { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+  .pagination .btn { min-width: 36px; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; }
+  .tag-ok { background: var(--success); color: #1e1e2e; }
+  .tag-fail { background: var(--danger); color: #fff; }
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+  .loading { text-align: center; padding: 40px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📋 审计日志 <span class="badge" id="totalBadge">...</span></h1>
+  <button class="btn btn-success" onclick="exportLogs()">⬇️ 导出日志</button>
+</div>
+
+<div class="controls">
+  <select id="filterAgent"><option value="">全部 Agent</option></select>
+  <select id="filterAction">
+    <option value="">全部动作</option>
+    <option value="shell">shell</option>
+    <option value="powershell">powershell</option>
+    <option value="screenshot">screenshot</option>
+    <option value="keypress">keypress</option>
+    <option value="mouse">mouse</option>
+    <option value="readfile">readfile</option>
+    <option value="password_fail">password_fail</option>
+  </select>
+  <input type="number" id="pageSize" value="20" min="5" max="100" style="width:80px" title="每页条数">
+  <span style="color:var(--muted);font-size:0.8rem">条/页</span>
+</div>
+
+<div id="tableContainer">
+  <div class="loading">⏳ 加载中...</div>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
+<script type="module">
+  const $ = (s) => document.querySelector(s);
+  let currentPage = 1;
+  let totalPages = 1;
+  let allData = [];
+
+  // 初始化
+  const ctx = await window.AstrBotPluginPage.ready();
+  applyTheme(ctx);
+  window.AstrBotPluginPage.onContext((c) => applyTheme(c));
+
+  function applyTheme(c) {
+    document.documentElement.setAttribute("data-theme", c?.isDark ? "dark" : "light");
+  }
+
+  // 加载数据
+  async function loadPage(page) {
+    const size = parseInt($("#pageSize").value) || 20;
+    $("#tableContainer").innerHTML = '<div class="loading">⏳ 加载中...</div>';
+    try {
+      const params = new URLSearchParams({ page, size });
+      const data = await window.AstrBotPluginPage.apiGet(`logs/list?${params}`);
+      allData = data.items || [];
+      totalPages = Math.max(1, Math.ceil(data.total / size));
+      currentPage = page;
+      renderTable();
+      renderPagination();
+      $("#totalBadge").textContent = `${data.total} 条`;
+    } catch (e) {
+      $("#tableContainer").innerHTML = `<div class="empty">⚠️ 加载失败: ${e.message}</div>`;
+    }
+  }
+
+  function renderTable() {
+    const agentFilter = $("#filterAgent").value;
+    const actionFilter = $("#filterAction").value;
+    let filtered = allData;
+    if (agentFilter) filtered = filtered.filter(e => e.agent_id === agentFilter);
+    if (actionFilter) filtered = filtered.filter(e => e.action?.startsWith(actionFilter));
+
+    if (!filtered.length) {
+      $("#tableContainer").innerHTML = '<div class="empty">📭 没有匹配的日志记录</div>';
+      return;
+    }
+
+    const rows = filtered.map(e => {
+      const ts = new Date((e.ts || 0) * 1000).toLocaleString();
+      const isOk = !e.result?.includes("失败") && !e.result?.includes("拒绝") && !e.result?.includes("错误");
+      const tag = isOk ? '<span class="tag tag-ok">OK</span>' : '<span class="tag tag-fail">FAIL</span>';
+      const resultShort = (e.result || "").slice(0, 80);
+      return `<tr>
+        <td>${ts}</td>
+        <td>${e.qq || ""}</td>
+        <td>${e.agent_id || ""}</td>
+        <td>${e.action || ""}</td>
+        <td>${tag}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(e.result||"").replace(/"/g,'"')}">${resultShort}</td>
+      </tr>`;
+    }).join("");
+
+    $("#tableContainer").innerHTML = `<table>
+      <thead><tr><th>时间</th><th>QQ</th><th>Agent</th><th>动作</th><th>结果</th><th>详情</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function renderPagination() {
+    const el = $("#pagination");
+    if (totalPages <= 1) { el.innerHTML = ""; return; }
+    let html = `<button class="btn" ${currentPage===1?"disabled":""} onclick="loadPage(${currentPage-1})">◀ 上一页</button>`;
+    html += `<span style="color:var(--muted);font-size:0.85rem">第 ${currentPage}/${totalPages} 页</span>`;
+    html += `<button class="btn" ${currentPage===totalPages?"disabled":""} onclick="loadPage(${currentPage+1})">下一页 ▶</button>`;
+    el.innerHTML = html;
+  }
+
+  // 导出
+  window.exportLogs = async function() {
+    try {
+      await window.AstrBotPluginPage.download("logs/export", { filename: `winremote_audit_${Date.now()}.jsonl` });
+    } catch (e) {
+      alert(`导出失败: ${e.message}`);
+    }
+  };
+
+  // 筛选事件
+  $("#filterAgent").addEventListener("change", () => renderTable());
+  $("#filterAction").addEventListener("change", () => renderTable());
+  $("#pageSize").addEventListener("change", () => loadPage(1));
+
+  // 首次加载（获取总条数 + 第一页）
+  try {
+    const params = new URLSearchParams({ page: 1, size: parseInt($("#pageSize").value) || 20 });
+    const data = await window.AstrBotPluginPage.apiGet(`logs/list?${params}`);
+    allData = data.items || [];
+    totalPages = Math.max(1, Math.ceil(data.total / (parseInt($("#pageSize").value) || 20)));
+    $("#totalBadge").textContent = `${data.total} 条`;
+    renderTable();
+    renderPagination();
+
+    // 填充 Agent 筛选下拉
+    const agents = [...new Set((data.items||[]).map(e => e.agent_id).filter(Boolean))];
+    const sel = $("#filterAgent");
+    agents.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a; opt.textContent = a;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    $("#tableContainer").innerHTML = `<div class="empty">⚠️ 初始化失败: ${e.message}</div>`;
+  }
+</script>
+</body>
+</html>
