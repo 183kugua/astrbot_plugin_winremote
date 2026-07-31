@@ -1,5 +1,5 @@
 """
-webui_panel.py - V0.9.0
+webui_panel.py - V0.9.1
 AstrBot WebUI main-panel widget for WinRemote.
 
 Exposes:

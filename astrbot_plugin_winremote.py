@@ -1,5 +1,5 @@
 """
-astrbot_plugin_winremote.py — AStrBot V0.9.0 唯一真源
+astrbot_plugin_winremote.py — AStrBot V0.9.1 唯一真源
 ======================================================
 AStrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
   main.py  或  astrbot_plugin_winremote.py
@@ -31,6 +31,13 @@ V0.9.0 关键修复：
 - AuditLogger        : 审计日志读写
 - WinRemotePlugin    : AStrBot 插件壳，持有 Server
 - 全局函数 get_config / validate_command / validate_path
+
+V0.9.1 关键修复：
+- 消除所有 `context.config` 引用（AStrBot 的 Context 没有 .config 属性，
+  导致 "'Context' object has no attribute 'config'" 报错）。
+- api_save_settings 改为直接读写 data/config/_config.json（用 StarTools.get_data_dir()），
+  不再走不存在的 context.config.set/save。
+- __init__ 中 cfg_obj 改为 None，由 WinRemoteServer 自行加载配置。
 """
 
 from __future__ import annotations
@@ -759,7 +766,9 @@ class WinRemotePlugin:
 
     def __init__(self, context=None):
         self.context = context
-        cfg_obj = context.config if context else None
+        # 注意：AstrBot 的 Context 没有 .config 属性
+        # 配置由 WinRemoteServer 自己从 data/config/_config.json 加载
+        cfg_obj = None
         self.server = WinRemoteServer(
             context=context,
             config=cfg_obj,
@@ -1128,12 +1137,32 @@ class WinRemotePlugin:
 
     async def api_save_settings(self, settings: dict) -> dict:
         try:
-            if self.context and hasattr(self.context, "config"):
-                for k, v in settings.items():
-                    self.context.config.set(k, v)
-                self.context.config.save()
-                self.cfg = get_config(self.context.config)
-                self.server.cfg = self.cfg
+            # 插件自己的配置存在 data/config/_config.json
+            # 用 StarTools.get_data_dir() 拿到目录，直接读写 JSON
+            from astrbot.api.star import StarTools
+            data_dir = StarTools.get_data_dir(self.context)
+            config_path = os.path.join(data_dir, "_config.json")
+            os.makedirs(data_dir, exist_ok=True)
+
+            # 读旧配置（如果存在）
+            cfg = {}
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                except (json.JSONDecodeError, OSError):
+                    cfg = {}
+
+            # 合并新配置
+            cfg.update(settings)
+
+            # 写回
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+            # 同步到内存
+            self.cfg = get_config(cfg)
+            self.server.cfg = self.cfg
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
