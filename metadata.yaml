@@ -1,0 +1,60 @@
+# =====================================================
+# AstrBot 插件元数据（必须：AstrBot 靠它识别插件）
+# 官方规范：https://docs.astrbot.app/dev/star/guides/plugin-config.html
+# =====================================================
+
+# 插件唯一标识符，必须与插件目录名一致
+# 必须以 astrbot_plugin_ 开头，全小写，无空格
+name: astrbot_plugin_winremote
+
+# WebUI / 插件市场展示名（v4.5.0+，支持 i18n）
+display_name: WinRemote 远程控制
+
+# 插件简短描述（插件卡片用）
+short_desc: 通过 QQ 远程控制 Windows 电脑，支持 Shell/截图/键鼠/文件读写
+
+# 插件完整描述
+desc: >
+  通过 AstrBot + WebSocket 反向隧道，让 QQ 成为你的 Windows 远程控制台。
+  支持 Shell/PowerShell 执行、桌面截图回传、键鼠模拟、程序打开、文件读写，
+  内置四重命令校验、Token 认证、二次密码、路径白名单、审计日志，
+  配套 Windows Agent 一键安装为系统服务（NSSM），开机自启、崩溃自拉。
+
+# 插件版本号（必须 v 前缀，格式 v1.1.1 或 v1.1）
+version: v0.6.0
+
+# 作者
+author: kugua
+
+# 源代码仓库地址
+repo: https://github.com/183kugua/astrbot_plugin_winremote
+
+# 插件主页（可选，不填则使用 repo）
+# homepage: https://github.com/183kugua/astrbot_plugin_winremote#readme
+
+# 标签（插件市场筛选用）
+tags:
+  - "远程控制"
+  - "Windows"
+  - "WebSocket"
+  - "自动化"
+  - "Shell"
+  - "截图"
+
+# 支持的 AstrBot 版本范围（PEP 440，不带 v 前缀）
+# 当前插件依赖 astrbot.api.web / bridge SDK / Pages，需 >=4.13
+astrbot_version: ">=4.13"
+
+# 支持的适配器平台（不填则支持所有）
+# 本插件通过 QQ(NapCat) 接收指令，实际可跨平台使用
+support_platforms:
+  - aiocqhttp
+
+# 依赖的其他插件（当前无）
+dependencies: []
+
+# 许可证（与 AstrBot 主仓一致，避免许可证冲突）
+license: AGPL-3.0
+
+# 插件图标（可选，放在插件目录下 logo.png，1:1，推荐 256x256）
+# logo: logo.png
