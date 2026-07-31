@@ -1,5 +1,5 @@
 """
-tests/test_agent_protocol.py - V0.8.1
+tests/test_agent_protocol.py - V0.9.0
 Tests for WinRemoteServer agent lifecycle, message dispatch, and panel data.
 Each test builds its OWN server + FakeWS to avoid shared-state pollution.
 """

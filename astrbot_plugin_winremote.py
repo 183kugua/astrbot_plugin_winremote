@@ -1,23 +1,27 @@
 """
-astrbot_plugin_winremote.py — AStrBot V0.8.1 唯一真源
+astrbot_plugin_winremote.py — AStrBot V0.9.0 唯一真源
 ======================================================
-AstrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
+AStrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
   main.py  或  astrbot_plugin_winremote.py
 本文件满足第二种命名约定，作为插件入口被直接 import。
 
-V0.8.1 关键修复：
-- _conf_schema.json 所有 "type": "integer" → "type": "int"
-  根因：AStrBot 的 _parse_schema 支持的类型只有
+V0.9.0 关键修复：
+- _conf_schema.json 所有 "type": "array" → "type": "list"
+  根因：AStrBot 的 _parse_schema 支持的类型白名单是
   int/float/bool/string/text/list/file/object/template_list/dict，
-  没有 "integer"。之前写成 "integer" 导致
-  "不受支持的配置类型 integer" 错误。
-- 与 V0.8.1 的扁平结构配合，schema 现在完全合规。
+  没有 "array"（也没有 "integer"/"arrays"）。
+  之前写成 "array" 导致
+  "不受支持的配置类型 array(s)" 错误。
+- 新增 SCHEMA_TYPE_WHITELIST 常量（唯一真源）：
+  任何动态生成 schema 的地方都 assert t in SCHEMA_TYPE_WHITELIST，
+  从源头杜绝再写出 "array"/"integer"/"arrays" 这类非法类型。
 
-V0.8.1 关键修复：
-- _conf_schema.json 改为 AstrBot 认的扁平结构（不再用分组嵌套）
-  根因：AstrBot 的 _parse_schema 只认一层 key→object 扁平结构，
-  之前 8 大分组嵌套导致 "string indices must be integers" 错误。
-- key 名与代码 get_config() 完全一致。
+V0.9.0 关键修复：
+- "integer" → "int"（AStrBot 不认 "integer"）。
+
+V0.9.0 关键修复：
+- 改为 AStrBot 认的扁平结构（不再用分组嵌套），
+  解决 "string indices must be integers" 错误。
 
 架构（测试友好，职责分离）：
 - WinRemoteServer     : WebSocket 服务端 + Agent 生命周期（可独立构造）
@@ -25,7 +29,7 @@ V0.8.1 关键修复：
 - AgentConnection    : 单个 Agent 的数据模型
 - PasswordGuard      : 二次密码 + 封禁
 - AuditLogger        : 审计日志读写
-- WinRemotePlugin    : AstrBot 插件壳，持有 Server
+- WinRemotePlugin    : AStrBot 插件壳，持有 Server
 - 全局函数 get_config / validate_command / validate_path
 """
 
@@ -43,6 +47,27 @@ import time
 import uuid
 from collections import deque
 from typing import Any
+
+# ============================================================
+# AStrBot _conf_schema.json 类型白名单（唯一真源）
+# ============================================================
+# AStrBot 的 _parse_schema 只认这 9 个 type 字符串。
+# 任何动态生成 / 校验 schema 的代码都必须 assert t in SCHEMA_TYPE_WHITELIST，
+# 防止再写出 "array" / "integer" / "arrays" 这类非法类型。
+SCHEMA_TYPE_WHITELIST = frozenset(
+    {
+        "int",  # 整数（不是 "integer"）
+        "float",  # 浮点
+        "bool",  # 布尔（不是 "boolean"）
+        "string",  # 单行文本
+        "text",  # 多行文本
+        "list",  # 列表 / 数组（不是 "array" / "arrays"）
+        "file",  # 文件上传
+        "object",  # 嵌套对象
+        "template_list",  # 模板列表
+        "dict",  # 自由字典
+    }
+)
 
 # ============================================================
 # 第三方
@@ -104,7 +129,7 @@ except ImportError:  # pragma: no cover
 # 常量
 # ============================================================
 PLUGIN_NAME = "astrbot_plugin_winremote"
-VERSION = "0.8.1"
+VERSION = "0.9.0"
 
 DANGEROUS_KEYWORDS = [
     "rm ",

@@ -10,8 +10,16 @@
     "type": "string",
     "description": "[服务端] WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全)。",
     "default": "127.0.0.1",
-    "enum": ["127.0.0.1", "0.0.0.0", "::1"],
-    "enumDescriptions": ["仅本机(推荐,需SSH隧道)", "全网监听(不安全)", "IPv6 本机"]
+    "enum": [
+      "127.0.0.1",
+      "0.0.0.0",
+      "::1"
+    ],
+    "enumDescriptions": [
+      "仅本机(推荐,需SSH隧道)",
+      "全网监听(不安全)",
+      "IPv6 本机"
+    ]
   },
   "ws_port": {
     "type": "int",
@@ -26,13 +34,17 @@
     "default": "/winremote"
   },
   "admin_qq": {
-    "type": "array",
+    "type": "list",
     "description": "[管理员] 允许使用 /win 指令的 QQ 号白名单。",
     "default": [],
-    "items": {"type": "int", "min": 10000, "max": 9999999999}
+    "items": {
+      "type": "int",
+      "min": 10000,
+      "max": 9999999999
+    }
   },
   "allow_group": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[管理员] 是否允许群聊中触发 /win 指令。",
     "default": false
   },
@@ -58,7 +70,7 @@
     "max": 86400
   },
   "require_encryption": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[安全] 要求加密连接(wss://)。设为 true 时拒绝非加密连接。",
     "default": false
   },
@@ -84,44 +96,94 @@
     "max": 50
   },
   "command_whitelist": {
-    "type": "array",
+    "type": "list",
     "description": "[指令] 命令白名单。仅列表中的命令可执行;为空则配合黑名单使用。",
-    "default": ["shell", "powershell", "screenshot", "key", "mouse", "open", "readfile", "audit"],
-    "items": {"type": "string"}
+    "default": [
+      "shell",
+      "powershell",
+      "screenshot",
+      "key",
+      "mouse",
+      "open",
+      "readfile",
+      "audit"
+    ],
+    "items": {
+      "type": "string"
+    }
   },
   "command_blacklist": {
-    "type": "array",
+    "type": "list",
     "description": "[指令] 命令黑名单(永远拒绝)。默认含 rm/del/format/shutdown 等危险命令。",
-    "default": ["rm ", "del ", "format", "shutdown", "reboot", "reg add", "reg delete", "net user", "mkfs", "dd if="],
-    "items": {"type": "string"}
+    "default": [
+      "rm ",
+      "del ",
+      "format",
+      "shutdown",
+      "reboot",
+      "reg add",
+      "reg delete",
+      "net user",
+      "mkfs",
+      "dd if="
+    ],
+    "items": {
+      "type": "string"
+    }
   },
   "command_regex_blacklist": {
-    "type": "array",
+    "type": "list",
     "description": "[指令] 正则黑名单,匹配则拒绝。用于拦截绕过手法(编码/管道等)。",
-    "default": ["powershell\\s+-enc", "cmd\\s+/c\\s+\"", "&&", "\\|\\|", ";\\s*rm", ";\\s*del", "\\$\\(.*\\)", "`"],
-    "items": {"type": "string"}
+    "default": [
+      "powershell\\s+-enc",
+      "cmd\\s+/c\\s+\"",
+      "&&",
+      "\\|\\|",
+      ";\\s*rm",
+      ";\\s*del",
+      "\\$\\(.*\\)",
+      "`"
+    ],
+    "items": {
+      "type": "string"
+    }
   },
   "allow_powershell": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[指令] 是否允许执行 powershell 指令。",
     "default": true
   },
   "strict_whitelist": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[指令] 严格白名单模式:开启后仅白名单命令可执行,黑名单失效。",
     "default": false
   },
   "path_whitelist": {
-    "type": "array",
+    "type": "list",
     "description": "[文件] 允许读写的路径白名单(Agent 侧校验)。仅这些目录下的文件可访问。",
-    "default": ["C:\\Temp", "C:\\Users\\Public", "D:\\"],
-    "items": {"type": "string"}
+    "default": [
+      "C:\\Temp",
+      "C:\\Users\\Public",
+      "D:\\"
+    ],
+    "items": {
+      "type": "string"
+    }
   },
   "path_blacklist_keywords": {
-    "type": "array",
+    "type": "list",
     "description": "[文件] 路径越狱关键词黑名单(服务端+Agent双端校验)。",
-    "default": ["..\\", "../", "%USERPROFILE%", "%SYSTEMROOT%", "C:\\Windows", "C:\\Program Files"],
-    "items": {"type": "string"}
+    "default": [
+      "..\\",
+      "../",
+      "%USERPROFILE%",
+      "%SYSTEMROOT%",
+      "C:\\Windows",
+      "C:\\Program Files"
+    ],
+    "items": {
+      "type": "string"
+    }
   },
   "max_read_bytes": {
     "type": "int",
@@ -131,12 +193,12 @@
     "max": 10485760
   },
   "file_allow_write": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[文件] 是否允许写入文件(默认只读更安全)。",
     "default": false
   },
   "auto_screenshot": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[输出] 指令执行后是否自动附带截图。",
     "default": true
   },
@@ -144,8 +206,16 @@
     "type": "string",
     "description": "[输出] 截图格式。JPEG=文件小,PNG=无损,WebP=折中。",
     "default": "JPEG",
-    "enum": ["JPEG", "PNG", "WebP"],
-    "enumDescriptions": ["JPEG 压缩小体积", "PNG 无损高质量", "WebP 体积质量折中"]
+    "enum": [
+      "JPEG",
+      "PNG",
+      "WebP"
+    ],
+    "enumDescriptions": [
+      "JPEG 压缩小体积",
+      "PNG 无损高质量",
+      "WebP 体积质量折中"
+    ]
   },
   "screenshot_quality": {
     "type": "int",
@@ -183,7 +253,7 @@
     "max": 600
   },
   "audit_enabled": {
-    "type": "boolean",
+    "type": "bool",
     "description": "[审计] 是否记录审计日志。",
     "default": true
   },

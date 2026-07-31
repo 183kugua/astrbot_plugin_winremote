@@ -1,5 +1,5 @@
 """
-tests/test_config.py - V0.8.1
+tests/test_config.py - V0.9.0
 Tests for configuration loading, command/path validation, and audit logger.
 """
 

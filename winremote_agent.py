@@ -1,5 +1,5 @@
 """
-WinRemote Agent V0.8 - Windows 本机常驻客户端
+WinRemote Agent V0.9 - Windows 本机常驻客户端
 功能：反连服务器 WebSocket，执行 Shell / PowerShell / 截图 / 键鼠 / 文件读写
 安全：客户端二次路径校验 + 写入开关 + 超时强杀 + 心跳线程
 合规：ruff-formatted, type-annotated, tested
@@ -22,7 +22,7 @@ from pathlib import Path  # noqa: E402
 # 配置（命令行参数优先，其次环境变量，最后默认值）
 # ============================================================
 def parse_args():
-    p = argparse.ArgumentParser(description="WinRemote Agent V0.8.1")
+    p = argparse.ArgumentParser(description="WinRemote Agent V0.9.0")
     p.add_argument(
         "--server", default=os.getenv("WINREMOTE_SERVER", "ws://127.0.0.1:6190/winremote")
     )

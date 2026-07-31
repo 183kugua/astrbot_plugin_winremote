@@ -1,7 +1,7 @@
 # WinRemote 远程控制插件元数据
 name: astrbot_plugin_winremote
 display_name: "WinRemote 远程控制"
-version: "v0.8.1"
+version: "v0.9.0"
 description: "通过 QQ 远程控制 Windows 电脑：执行命令、截图、键鼠模拟、文件读写。WebSocket 反向连接 + Token 认证 + 管理员白名单 + 审计日志。"
 author: "183kugua"
 repo: "https://github.com/183kugua/astrbot_plugin_winremote"
