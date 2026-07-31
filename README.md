@@ -1,6 +1,6 @@
 # WinRemote V0.6.0 - AstrBot Remote Control Windows Plugin
 
-通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。
+通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。/n
 本插件几乎全为AI编写（这条内容除外~）
 
 ## 许可证
