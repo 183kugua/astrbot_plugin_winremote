@@ -1,5 +1,5 @@
 """
-tests/test_security.py - V0.5.1
+tests/test_security.py - V0.7.0
 Security-focused tests: token auth, second-factor password, injection attempts.
 """
 

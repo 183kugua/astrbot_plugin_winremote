@@ -8,49 +8,35 @@ __pycache__/
 dist/
 build/
 .eggs/
-wheels/
-*.egg
 
 # Virtual environments
-.venv/
 venv/
 env/
+.venv/
 ENV/
-.venv
-venv.bak/
 
-# IDE / Editors
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
-.DS_Store
 
-# uv / pip / pytest
-uv.lock
+# OS
+.DS_Store
+Thumbs.db
+
+# AstrBot runtime
+data/
+logs/
+astrbot.lock
+.astrbot/
+*.secret*
+*_secret.*
+
+# Tests
 .pytest_cache/
-.mypy_cache/
 .coverage
 htmlcov/
 
-# AstrBot runtime
-.astrbot/
-astrbot.lock
-data/
-logs/
-temp/
-cookies.json
-
-# Plugin-specific (winremote)
-*.log
-run_agent.bat
-agent_config.local.json
-.agent_secret*
-
-# OS / misc
-Thumbs.db
-desktop.ini
-*.bak
-*.tmp
-*.swp
+# Editor
+*~

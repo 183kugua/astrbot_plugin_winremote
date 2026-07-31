@@ -1,5 +1,5 @@
 """
-tests/test_agent_protocol.py - V0.5.1
+tests/test_agent_protocol.py - V0.7.0
 Tests for WinRemoteServer agent lifecycle, message dispatch, and SSE data endpoint.
 Uses websockets library to spin up a real (in-process) server and connect a mock agent.
 """
@@ -53,15 +53,15 @@ def make_ws(recv_messages, peer=("127.0.0.1", 50000)):
     """Return a MagicMock ws that supports both .recv() and 'async for' iteration.
 
     Key trick: BOTH ws.recv() and 'async for ws' draw from the SAME
-    _MessageQueue, so the handshake (recv) and the main loop (async for)
-    see a consistent message stream.
+    _MessageQueue instance (not a new one each time), so the handshake
+    (recv) and the main loop (async for) see a consistent stream.
     """
     ws = MagicMock()
     ws.remote_address = peer
 
     queue = _MessageQueue(recv_messages)
 
-    # 'async for x in ws:' calls ws.__aiter__()
+    # Return the SAME queue instance every time (no per-call new object)
     ws.__aiter__ = lambda self: queue
     ws.__anext__ = lambda self: queue.__anext__()
     # ws.recv() is awaited once for the handshake
@@ -330,15 +330,16 @@ class TestSendCommand:
         srv = plugin.WinRemoteServer(ctx_mock, base_cfg, audit)
 
         ws = MagicMock()
-        ws.send = AsyncMock()
         agent = plugin.AgentConnection(ws=ws, agent_id="send-agent")
         agent.authenticated = True  # mark as authenticated
         await srv.agents.add(agent)
 
-        # After send, simulate agent responding (task_result sets busy=False)
-        async def fake_send(payload):
+        # AsyncMock so 'await ws.send()' in the plugin works.
+        # side_effect mutates agent state (simulates agent responding).
+        def fake_send(payload):
             agent.busy = False
             agent.current_task = None
+            return None
 
         ws.send = AsyncMock(side_effect=fake_send)
 

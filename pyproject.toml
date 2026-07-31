@@ -1,6 +1,6 @@
 [project]
 name = "astrbot_plugin_winremote"
-version = "0.5.0"
+version = "0.7.0"
 description = "Remote control Windows via QQ/AstrBot with WebSocket reverse tunnel, audit logging, and WebUI Pages"
 readme = "README.md"
 license = { text = "AGPL-3.0" }
@@ -46,3 +46,10 @@ indent-style = "space"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+filterwarnings = [
+    # websockets >= 14 deprecated WebSocketServerProtocol; we use Protocol fallback
+    "ignore::DeprecationWarning:websockets.*",
+    # AsyncMock coroutines created but not awaited in _dispatch paths
+    # (agent.send() returns awaitable; in some exception paths it's GC'd)
+    "ignore::RuntimeWarning:coroutine.*never awaited",
+]

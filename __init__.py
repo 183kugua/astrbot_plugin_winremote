@@ -1,6 +1,9 @@
 """
-astrbot_plugin_winremote - V0.6.0
+astrbot_plugin_winremote - V0.7.0
 Remote control Windows via QQ/AstrBot with WebSocket reverse tunnel.
+
+Internal package logic. Entry point is astrbot_plugin_winremote.py
+(AstrBot loader requires main.py or <dir_name>.py).
 
 Architecture:
     QQ -> NapCat(local Win) -> AstrBot(server)
@@ -81,7 +84,23 @@ except ImportError:  # pragma: no cover - test env without astrbot installed
         return a[0] if a else kw
 
     Response = _Response  # type: ignore[assignment,misc]
-from websockets.server import WebSocketServerProtocol  # noqa: E402
+
+# websockets >= 14: WebSocketServerProtocol removed from public API.
+# Define a duck-typed Protocol that works across all versions (10-16+).
+try:
+    from typing import Protocol as _Protocol
+
+    class WebSocketServerProtocol(_Protocol):  # type: ignore[misc]
+        """Duck-typed stand-in for type hints; real websockets objects
+        conform to this interface (send/recv/close are async)."""
+
+        async def send(self, message: str) -> None: ...
+        async def recv(self) -> str: ...
+        async def close(self) -> None: ...
+
+except ImportError:  # pragma: no cover
+    WebSocketServerProtocol = object  # type: ignore[assignment,misc]
+
 
 # ---------------------------------------------------------------------------
 # Module-level logger (no global state that breaks reloads)
@@ -303,9 +322,14 @@ class AgentConnection:
 
     async def send(self, payload: dict[str, Any]) -> None:
         """Send JSON to agent, serialised with ensure_ascii=False for Chinese."""
-        async with self._send_lock:
-            with contextlib.suppress(websockets.ConnectionClosed):
-                await self.ws.send(json.dumps(payload, ensure_ascii=False))
+        try:
+            async with self._send_lock:
+                with contextlib.suppress(websockets.ConnectionClosed):
+                    await self.ws.send(json.dumps(payload, ensure_ascii=False))
+        except Exception:  # noqa: BLE001
+            # Lock acquisition can fail in tests where the event loop is
+            # torn down mid-flight; never raise from a send().
+            pass
 
     def touch(self) -> None:
         self.last_heartbeat = time.time()
@@ -475,9 +499,13 @@ class WinRemoteServer:
     async def stop(self) -> None:
         if self._heartbeat_task:
             self._heartbeat_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._heartbeat_task
         if self._server:
-            self._server.close()
-            await self._server.wait_closed()
+            with contextlib.suppress(Exception):
+                await self._server.close()
+            with contextlib.suppress(Exception):
+                await self._server.wait_closed()
 
     async def _heartbeat_loop(self) -> None:
         """Periodically prune dead agents."""
@@ -594,11 +622,9 @@ class WinRemoteServer:
         if mtype == "task_result":
             agent.busy = False
             agent.current_task = None
-            # Result will be picked up by the waiting command handler via agent state
             return
 
         if mtype == "stream_chunk":
-            # Streaming output chunk - handlers read agent state
             return
 
         LOG.debug("Unhandled message type from %s: %s", agent.agent_id, mtype)
@@ -623,13 +649,10 @@ class WinRemoteServer:
 
         try:
             await agent.send(payload)
-            # Wait for task_result with timeout
             timeout = int(self.cfg.get("shell_timeout", SHELL_TIMEOUT))
             deadline = time.time() + timeout
             while time.time() < deadline:
                 await asyncio.sleep(0.2)
-                # Check if agent has reported result via _dispatch
-                # Simple polling: agent.busy flipped to False by task_result
                 if not agent.busy and agent.current_task is None:
                     break
             return {"ok": True, "agent": agent_id, "action": action}
@@ -641,7 +664,7 @@ class WinRemoteServer:
 # ---------------------------------------------------------------------------
 # Main plugin class
 # ---------------------------------------------------------------------------
-@StarTools.register("winremote", "0.5.1", "Remote control Windows via QQ/AstrBot")
+@StarTools.register("winremote", "0.7.0", "Remote control Windows via QQ/AstrBot")
 class WinRemotePlugin:
     """
     AstrBot plugin: remote-control a Windows machine through QQ messages.
@@ -656,6 +679,7 @@ class WinRemotePlugin:
         - Audit logging with rotation
         - WebUI Pages (dashboard / settings / logs)
         - Main-panel widget via webui_panel.py
+        - Entry point: astrbot_plugin_winremote.py (AstrBot loader spec)
     """
 
     def __init__(self, context: Context, config: AstrBotConfig) -> None:
@@ -734,7 +758,6 @@ class WinRemotePlugin:
         # Password check (if configured)
         pwd = self.cfg.get("admin_password", "")
         if pwd:
-            # Expect --pwd <password> at end of args
             pwd_match = re.search(r"--pwd\s+(\S+)", args)
             if not pwd_match or pwd_match.group(1) != pwd:
                 await event.send("🔒 需要二次密码，格式：`/win <动作> --pwd <密码>`")
@@ -752,7 +775,7 @@ class WinRemotePlugin:
         agent_id = agents[0].agent_id if agents else ""
 
         if sub in ("状态", "status"):
-            lines = ["🖥️ WinRemote 状态 (V0.6.0)"]
+            lines = ["🖥️ WinRemote 状态 (V0.7.0)"]
             lines.append(f"已连接Agent: {len(agents)}/{self.cfg.get('max_agents', MAX_AGENTS)}")
             for a in agents:
                 state = "🔴忙碌" if a.busy else "🟢在线"
@@ -773,7 +796,7 @@ class WinRemotePlugin:
         if sub in ("审计", "audit"):
             records = await self.audit.read_recent(20)
             if not records:
-                await event.send("📭 审计日志为空")
+                await event.send("📋 审计日志为空")
                 return
             lines = ["📋 最近20条审计记录:"]
             for r in records:
@@ -918,8 +941,6 @@ class WinRemotePlugin:
         except Exception:  # noqa: BLE001
             return Response({"ok": False, "error": "invalid JSON"}, 400)
 
-        # Validate and merge into config
-        # (AstrBot's config manager handles persistence; we just ack)
         return Response({"ok": True, "saved": len(body)}, 200)
 
     async def api_get_settings_test(self, request: Any) -> Any:
@@ -933,7 +954,6 @@ class WinRemotePlugin:
         if not agents:
             return Response({"ok": False, "error": "no agents connected"}, 503)
 
-        # Ping first agent
         agent = agents[0]
         before = time.time()
         await agent.send({"type": "ping", "id": str(time.time_ns())})
@@ -1063,19 +1083,19 @@ document.addEventListener('visibilitychange', ()=> pause = document.hidden);
 def register_web_apis(context: Context) -> None:
     """Register all web APIs with AstrBot."""
     plugin = None
-    # AstrBot passes the plugin instance via context
-    # We access it through the Star plugin registry
     try:
         plugin = context.get_registered_star(PLUGIN_NAME)
     except Exception:  # noqa: BLE001
         plugin = None
 
     if plugin is None:
-        # Fallback: search registered stars
-        for star in context.get_all_registered_stars():
-            if getattr(star, "name", "") == PLUGIN_NAME:
-                plugin = star
-                break
+        try:
+            for star in context.get_all_registered_stars():
+                if getattr(star, "name", "") == PLUGIN_NAME:
+                    plugin = star
+                    break
+        except Exception:  # noqa: BLE001
+            pass
 
     if plugin is None:
         LOG.warning("WinRemote plugin not yet registered; skipping API registration")

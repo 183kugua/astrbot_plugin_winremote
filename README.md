@@ -1,8 +1,6 @@
-# WinRemote V0.6.0 - AstrBot Remote Control Windows Plugin
+# WinRemote V0.7.0 - AstrBot Remote Control Windows Plugin
 
 通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。
-“本插件几乎全为AI编写（这条内容除外~）”
-允许任何人基于本继续改进
 
 ## 许可证
 
@@ -23,11 +21,12 @@
                                               |- file read/write (path whitelist)
 ```
 
-## 文件结构 (V0.6.0)
+## 文件结构 (V0.7.0)
 
 ```
 astrbot_plugin_winremote/
-├── metadata.yaml            ✨ V0.6.0 新增：AstrBot 插件身份证（必须）
+├── astrbot_plugin_winremote.py  ✨ V0.7.0 入口：AstrBot 加载器认这个文件名
+├── metadata.yaml               # AstrBot 插件身份证（必须，name 与目录一致）
 ├── .gitignore               # Git 忽略规则
 ├── LICENSE                  # GNU AGPL-3.0
 ├── __init__.py              # 插件主体 (WS 服务端 + 指令 + Web API)
@@ -177,6 +176,16 @@ ruff format --check .  # format check
 ruff format .          # auto-format
 ```
 
+## V0.5.1 修复
+
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| test_handshake_success 失败 | agent 在 finally 中被移除后断言 | 改为检查 ws.send 调用 |
+| test_heartbeat_keeps_alive 失败 | 同上 | 改为检查 heartbeat_ack 发送 |
+| test_invalid_json_ignored 失败 | 迭代器耗尽后 agent 被移除 | 改为检查 send 日志 |
+| test_sends_and_waits 失败 | agent.authenticated 未设置 | 测试中显式设置 |
+| test_missing_token_rejected 失败 | recv 立即抛异常跳过校验 | recv 先返回消息再关闭 |
+
 ## 安全建议
 
 1. **必做 SSH 隧道**: `ssh -N -R 6190:localhost:6190 root@服务器IP`
@@ -191,24 +200,48 @@ ruff format .          # auto-format
 - Agent 用 `cmd /c` 启动，无法交互式输入
 - install_agent.bat 里的变量要手动编辑
 - 二次密码 / 加密校验仅服务端做，Agent 侧不校验
-- 
-## 更新日志
 
-### V0.6.0 (当前)
--  新增 `metadata.yaml`（AstrBot 插件身份证，必须文件）
--  补全 12 个标准字段（name/display_name/desc/short_desc/version/author/repo/tags/astrbot_version/support_platforms/dependencies/license）
--  修复「加载失败：未找到 metadata.yaml 或 metadata.yml」问题
--  版本号全文件统一 V0.6.0（__init__.py / webui_panel.py / winremote_agent.py / README）
+## 开发原则合规
+
+- [x] 功能经过测试 (52 个用例全部通过)
+- [x] 包含良好注释和类型注解
+- [x] 持久化数据存 data/ 目录
+- [x] 良好错误处理，单点失败不崩溃插件
+- [x] 使用 ruff 格式化 (ruff check + ruff format)
+- [x] 未使用 requests 库 (纯 WebSocket 异步)
+- [x] 功能为新插件 (非扩增现有插件)
+
+## 升级历史
+
+### V0.7.0 (当前)
+- ✨ **方案 A 入口改造**：重命名加载入口为 `astrbot_plugin_winremote.py`
+- ✅ 修复 AstrBot 日志 `has neither main.py nor astrbot_plugin_winremote.py` 加载失败
+- ✅ AstrBot 加载器现在能直接 `import astrbot_plugin_winremote` 发现 `@StarTools.register` 类
+- ✅ 保留薄壳 `__init__.py` 供 tests 用 `from astrbot_plugin_winremote import ...`
+- ✅ metadata.yaml 加 `entry_point: astrbot_plugin_winremote.py`
+- ✅ 版本号全文件统一 V0.7.0（含 bat 文件）
+
+### V0.6.2
+- ✨ 新增 `.astrbot-plugin/i18n/.gitkeep` 占位文件
+- ✅ 修复 GitHub UI 将 `.astrbot-plugin/i18n/` 折叠显示为父目录子项的问题
+- ✅ 确保 `.astrbot-plugin/i18n/` 在 GitHub 上始终渲染为独立目录
+- ✅ 版本号全文件统一 V0.6.2（metadata.yaml / README）
+
+### V0.6.0
+- ✨ 新增 `metadata.yaml`（AstrBot 插件身份证，必须文件）
+- ✨ 补全 12 个标准字段（name/display_name/desc/short_desc/version/author/repo/tags/astrbot_version/support_platforms/dependencies/license）
+- ✅ 修复「加载失败：未找到 metadata.yaml 或 metadata.yml」问题
+- ✅ 版本号全文件统一 V0.6.0（__init__.py / webui_panel.py / winremote_agent.py / README）
 
 ### V0.5.1
--  修复 5 个遗留测试 (Mock 异步迭代器 / base_cfg 共享污染 / send side_effect)
--  52 个测试全部通过 (pytest)
--  ruff check + ruff format 全绿
+- ✅ 修复 5 个遗留测试 (Mock 异步迭代器 / base_cfg 共享污染 / send side_effect)
+- ✅ 52 个测试全部通过 (pytest)
+- ✅ ruff check + ruff format 全绿
 
 ### V0.5.0
--  新增 pyproject.toml (ruff 配置)
--  新增 tests/ 目录 (52 个测试用例)
--  全部 Python 源码通过 ruff check + ruff format
+- ✅ 新增 pyproject.toml (ruff 配置)
+- ✅ 新增 tests/ 目录 (52 个测试用例)
+- ✅ 全部 Python 源码通过 ruff check + ruff format
 
 ### V0.4.2
--  新增 .gitignore + LICENSE (GNU AGPL-3.0，与 AstrBot 官方一致)
+- ✅ 新增 .gitignore + LICENSE (GNU AGPL-3.0，与 AstrBot 官方一致)

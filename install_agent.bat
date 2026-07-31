@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 REM ============================================================
-REM WinRemote Agent V0.4 - Windows 一键部署脚本
+REM WinRemote Agent V0.7.0 - Windows 一键部署脚本
 REM 用法：右键「以管理员身份运行」
 REM ============================================================
 
@@ -51,7 +51,7 @@ if errorlevel 1 (
     echo ⚠️ NSSM 未安装，跳过服务注册（可手动运行 run_agent.bat）
 ) else (
     nssm set WinRemoteAgent AppDirectory "%AGENT_DIR%" 2>nul
-    nssm set WinRemoteAgent DisplayName "WinRemote Agent V0.4" 2>nul
+    nssm set WinRemoteAgent DisplayName "WinRemote Agent V0.7.0" 2>nul
     nssm set WinRemoteAgent Description "AstrBot WinRemote Windows Agent" 2>nul
     nssm set WinRemoteAgent Start SERVICE_AUTO_START 2>nul
     nssm set WinRemoteAgent AppRestartDelay 5000 2>nul
