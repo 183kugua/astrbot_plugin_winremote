@@ -1,5 +1,5 @@
 """
-__init__.py — 薄壳（V0.9.0）
+__init__.py — 薄壳（V0.9.3）
 ==========================
 唯一职责：让 `from astrbot_plugin_winremote import ...` 可用。
 真实逻辑全部在 astrbot_plugin_winremote.py（与目录同名，AstrBot 入口）。

@@ -1,27 +1,26 @@
 """
-astrbot_plugin_winremote.py — AStrBot V0.9.1 唯一真源
+astrbot_plugin_winremote.py — AStrBot V0.9.3 唯一真源
 ======================================================
 AStrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
   main.py  或  astrbot_plugin_winremote.py
 本文件满足第二种命名约定，作为插件入口被直接 import。
 
-V0.9.0 关键修复：
-- _conf_schema.json 所有 "type": "array" → "type": "list"
-  根因：AStrBot 的 _parse_schema 支持的类型白名单是
-  int/float/bool/string/text/list/file/object/template_list/dict，
-  没有 "array"（也没有 "integer"/"arrays"）。
-  之前写成 "array" 导致
-  "不受支持的配置类型 array(s)" 错误。
-- 新增 SCHEMA_TYPE_WHITELIST 常量（唯一真源）：
-  任何动态生成 schema 的地方都 assert t in SCHEMA_TYPE_WHITELIST，
-  从源头杜绝再写出 "array"/"integer"/"arrays" 这类非法类型。
+V0.9.3 关键修复：
+- _conf_schema.json 改为分组级 description 结构：
+  每个分组是 {"type":"object","title":"...","description":"...","fields":{...}}
+  description 和 title 是同级兄弟节点，AStrBot 在标题下方
+  独立渲染一段灰色说明文字（换行、多句），不再和标题挤同一行。
+- 字段级 description 只保留简短 placeholder，分组级写完整介绍。
+- 严格对齐官方示例格式：
+    "title": "<标题>",
+    "description": "<介绍>"
+  作为同级兄弟节点。
+- 结构改用 "groups" 数组包裹，每个元素是一个完整分组对象。
 
-V0.9.0 关键修复：
-- "integer" → "int"（AStrBot 不认 "integer"）。
-
-V0.9.0 关键修复：
-- 改为 AStrBot 认的扁平结构（不再用分组嵌套），
-  解决 "string indices must be integers" 错误。
+历史修复（已稳定）：
+- V0.9.1：消除所有 context.config 引用。
+- V0.9.0：type 白名单（int/bool/list 等，无 array/integer/arrays）。
+- V0.8.x：扁平 schema 结构，解决 string indices 错误。
 
 架构（测试友好，职责分离）：
 - WinRemoteServer     : WebSocket 服务端 + Agent 生命周期（可独立构造）
@@ -31,13 +30,6 @@ V0.9.0 关键修复：
 - AuditLogger        : 审计日志读写
 - WinRemotePlugin    : AStrBot 插件壳，持有 Server
 - 全局函数 get_config / validate_command / validate_path
-
-V0.9.1 关键修复：
-- 消除所有 `context.config` 引用（AStrBot 的 Context 没有 .config 属性，
-  导致 "'Context' object has no attribute 'config'" 报错）。
-- api_save_settings 改为直接读写 data/config/_config.json（用 StarTools.get_data_dir()），
-  不再走不存在的 context.config.set/save。
-- __init__ 中 cfg_obj 改为 None，由 WinRemoteServer 自行加载配置。
 """
 
 from __future__ import annotations
@@ -136,7 +128,7 @@ except ImportError:  # pragma: no cover
 # 常量
 # ============================================================
 PLUGIN_NAME = "astrbot_plugin_winremote"
-VERSION = "0.9.0"
+VERSION = "0.9.3"
 
 DANGEROUS_KEYWORDS = [
     "rm ",
@@ -1140,6 +1132,7 @@ class WinRemotePlugin:
             # 插件自己的配置存在 data/config/_config.json
             # 用 StarTools.get_data_dir() 拿到目录，直接读写 JSON
             from astrbot.api.star import StarTools
+
             data_dir = StarTools.get_data_dir(self.context)
             config_path = os.path.join(data_dir, "_config.json")
             os.makedirs(data_dir, exist_ok=True)
@@ -1148,7 +1141,7 @@ class WinRemotePlugin:
             cfg = {}
             if os.path.exists(config_path):
                 try:
-                    with open(config_path, "r", encoding="utf-8") as f:
+                    with open(config_path, encoding="utf-8") as f:
                         cfg = json.load(f)
                 except (json.JSONDecodeError, OSError):
                     cfg = {}

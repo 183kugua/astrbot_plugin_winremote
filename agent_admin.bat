@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 REM ============================================================
-REM WinRemote Agent V0.9.0 - Windows 本机服务管理工具
+REM WinRemote Agent V0.9.3 - Windows 本机服务管理工具
 REM 用法：右键「以管理员身份运行」，按菜单选择操作
 REM ============================================================
 
@@ -10,7 +10,7 @@ REM ============================================================
 cls
 echo.
 echo ╔══════════════════════════════════════════╗
-echo ║   WinRemote Agent V0.9.0 服务管理工具       ║
+echo ║   WinRemote Agent V0.9.3 服务管理工具       ║
 echo ╚══════════════════════════════════════════╝
 echo.
 
@@ -152,7 +152,7 @@ echo python winremote_agent.py --server %SERVER_URL% --token %TOKEN% --agent-id 
 REM 注册服务
 nssm install WinRemoteAgent "%RUN_SCRIPT%" || goto :install_fail
 nssm set WinRemoteAgent AppDirectory "%AGENT_DIR%" || goto :install_fail
-nssm set WinRemoteAgent DisplayName "WinRemote Agent V0.7.0" || goto :install_fail
+nssm set WinRemoteAgent DisplayName "WinRemote Agent V0.9.3" || goto :install_fail
 nssm set WinRemoteAgent Description "AstrBot WinRemote Windows Agent" || goto :install_fail
 nssm set WinRemoteAgent Start SERVICE_AUTO_START || goto :install_fail
 nssm set WinRemoteAgent AppRestartDelay 5000 || goto :install_fail
