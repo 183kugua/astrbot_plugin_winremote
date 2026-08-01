@@ -1,6 +1,6 @@
 [project]
 name = "astrbot-plugin-winremote"
-version = "0.9.3"
+version = "0.9.6"
 description = "通过 QQ 远程控制 Windows 电脑（AstrBot 插件）"
 readme = "README.md"
 license = {text = "AGPL-3.0"}
