@@ -57,5 +57,18 @@
       "refresh": "Refresh",
       "last_update": "Last Update"
     }
+  },
+  "auth": {
+    "title": "Authorization",
+    "ttl_label": "Auth TTL (seconds)",
+    "ttl_desc": "High-risk op auth duration. Default 300s (5min); 0=permanent (needs group confirm); >1800s also needs confirm",
+    "password_label": "Secondary Password (hash)",
+    "password_desc": "SHA-256 hash for auth verification",
+    "status_label": "Current Auth Status",
+    "revoke_all": "Revoke All Auth",
+    "revoke_all_confirm": "Revoke all authorizations?",
+    "verify_log": "Verify Audit Log",
+    "verify_ok": "Audit log intact, no tampering detected",
+    "verify_bad": "{count} tampered entries found"
   }
 }
