@@ -78,8 +78,8 @@ ssh -N -R 6190:localhost:6190 root@你的服务器IP
 - 脚本会交互式询问 Server URL / Token / Agent ID
 - **不再自动下载 NSSM**（安全审查要求）
 - 手动下载 NSSM: https://nssm.cc/download
--nssm可以将bat文件包装为windows系统服务，关掉命令行窗口也可以运行
--使用方法见本插件github仓库中的文档：
+- nssm可以将bat文件包装为windows系统服务，关掉命令行窗口也可以运行
+- 使用方法见本插件github仓库中的文档：
 1.WinRemote_NSSM_Quick_Start.md  （5 分钟上手极简版）
 2.WinRemote_NSSM_Service_Guide.md   （完整教程）
 
