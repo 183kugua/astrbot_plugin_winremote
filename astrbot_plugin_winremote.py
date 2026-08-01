@@ -45,17 +45,25 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 import uuid
 from collections import deque
+from pathlib import Path
 from typing import Any
 
 # ============================================================
 # 本地模块（v0.9.5：会话级授权 + 私聊确认）
-# 必须在最顶部，避免 E402
+# 使用基于 __file__ 的路径导入，兼容 AStrBot 的 importlib 加载方式
+# （AStrBot 不一定把插件目录加入 sys.path）
 # ============================================================
-from auth import AuthManager
-from confirm import request_private_confirm
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+# noqa: E402 — 上面必须在 import 前执行（确保 sys.path 包含插件目录）
+from auth import AuthManager  # noqa: E402
+from confirm import request_private_confirm  # noqa: E402
 
 # ============================================================
 # AStrBot _conf_schema.json 类型白名单（唯一真源）
