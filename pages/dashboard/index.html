@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WinRemote 远控面板</title>
+<title>WinRemote 远控面板 v0.9.6</title>
 <style>
   :root[data-theme="dark"] {
     --bg: #1e1e2e; --card: #181825; --fg: #cdd6f4;
     --accent: #89b4fa; --success: #a6e3a1; --danger: #f38ba8;
-    --warn: #f9e2af; --border: #313244; --muted: #6c7086;
+    --warn: #f9e2af; --border: #313244; --muted: #6c7086; --input: #11111b;
   }
   :root[data-theme="light"] {
-    --bg: #ffffff; --card: #f5f5f5; --fg: #1e1e2e;
+    --bg: #ffffff; --card: #f9fafb; --fg: #1e1e2e;
     --accent: #2563eb; --success: #16a34a; --danger: #dc2626;
-    --warn: #d97706; --border: #e5e7eb; --muted: #6b7280;
+    --warn: #d97706; --border: #e5e7eb; --muted: #6b7280; --input: #f3f4f6;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -31,8 +31,24 @@
     font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
     background: var(--accent); color: #fff; font-weight: 500;
   }
+  .header .integrity {
+    font-size: 0.75rem; padding: 3px 10px; border-radius: 8px; font-weight: 500;
+  }
+  .integrity-ok { background: var(--success); color: #1e1e2e; }
+  .integrity-bad { background: var(--danger); color: #fff; }
+  .integrity-unknown { background: var(--warn); color: #1e1e2e; }
   .last-update { font-size: 0.8rem; color: var(--muted); }
-  .agents-grid { display: grid; gap: 16px; }
+
+  .stats-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-card {
+    flex: 1; min-width: 120px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .stat-value { font-size: 1.5rem; font-weight: 700; }
+  .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  .agents-grid { display: grid; gap: 16px; margin-bottom: 20px; }
   .agent-card {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 16px; transition: all 0.3s;
@@ -63,27 +79,64 @@
     font-family: "Cascadia Code", "Fira Code", monospace; font-size: 0.85rem;
   }
   .task-bar .label { color: var(--muted); margin-right: 6px; }
-  .empty-state {
-    text-align: center; padding: 60px 20px; color: var(--muted);
+
+  /* 授权面板 */
+  .auth-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 20px;
   }
+  .auth-panel h2 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .auth-list { display: flex; flex-direction: column; gap: 8px; }
+  .auth-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: var(--bg); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .auth-item .op-name { font-weight: 600; font-size: 0.9rem; }
+  .auth-item .op-ttl { font-size: 0.8rem; color: var(--muted); }
+  .auth-tag {
+    display: inline-block; padding: 1px 8px; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 600; margin-left: 6px;
+  }
+  .auth-tag.perm { background: var(--warn); color: #1e1e2e; }
+  .auth-tag.temp { background: var(--accent); color: #fff; }
+  .auth-tag.pending { background: var(--danger); color: #fff; }
+  .btn { padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: 0.85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-sm { padding: 3px 10px; font-size: 0.75rem; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
   .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
-  .stats-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-  .stat-card {
-    flex: 1; min-width: 120px; background: var(--card);
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 12px 16px;
-  }
-  .stat-value { font-size: 1.5rem; font-weight: 700; }
-  .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; font-size: 0.9rem; z-index: 9999; animation: slideIn 0.3s ease; }
+  .toast.success { background: var(--success); color: #1e1e2e; }
+  .toast.error { background: var(--danger); color: #fff; }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 </style>
 </head>
 <body>
 <div class="header">
-  <h1>🖥️ WinRemote <span class="badge" id="version">V0.4</span></h1>
-  <div class="last-update" id="lastUpdate">等待连接...</div>
+  <h1>🖥️ WinRemote <span class="badge" id="version">v0.9.6</span></h1>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="integrityBadge" class="integrity integrity-unknown">审计: 检测中...</span>
+    <button class="btn btn-primary btn-sm" onclick="verifyAudit()">🔍 校验审计</button>
+  </div>
 </div>
+<div class="last-update" id="lastUpdate">等待连接...</div>
 
 <div class="stats-row" id="statsRow"></div>
+
+<!-- 授权状态面板 -->
+<div class="auth-panel" id="authPanel">
+  <h2>🔐 会话授权 <button class="btn btn-danger btn-sm" onclick="revokeAll()" style="margin-left:auto;">全部吊销</button></h2>
+  <div class="auth-list" id="authList">
+    <div class="empty-state" style="padding:20px;"><div class="icon">⏳</div><div>加载中...</div></div>
+  </div>
+</div>
+
 <div class="agents-grid" id="agentsGrid">
   <div class="empty-state">
     <div class="icon">🔌</div>
@@ -95,75 +148,169 @@
   const $ = (s) => document.querySelector(s);
   const grid = $("#agentsGrid");
   const statsRow = $("#statsRow");
+  const authList = $("#authList");
   const lastUpdate = $("#lastUpdate");
+  const integrityBadge = $("#integrityBadge");
 
-  // 等待 bridge 就绪
+  // 初始化
   const ctx = await window.AstrBotPluginPage.ready();
-
-  // 主题适配
-  function applyTheme(c) {
-    const t = c?.isDark ? "dark" : "light";
-    document.documentElement.setAttribute("data-theme", t);
-  }
   applyTheme(ctx);
   window.AstrBotPluginPage.onContext((c) => applyTheme(c));
 
-  // 时间格式化
+  function applyTheme(c) {
+    document.documentElement.setAttribute("data-theme", c?.isDark ? "dark" : "light");
+  }
+
   function nowStr() { return new Date().toLocaleTimeString(); }
 
-  // 渲染
-  function render(agents) {
+  // Toast
+  function showToast(msg, type) {
+    const t = document.createElement("div");
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // 渲染 Agent
+  function renderAgents(agents) {
     lastUpdate.textContent = `最后更新: ${nowStr()}`;
     if (!agents.length) {
       grid.innerHTML = `<div class="empty-state"><div class="icon">😴</div><div>暂无在线 Agent</div></div>`;
       statsRow.innerHTML = "";
       return;
     }
-    // 统计
-    const online = agents.filter(a => a.online).length;
-    const busy = agents.filter(a => a.busy).length;
+    const online = agents.filter(a => a.alive).length;
+    const busy = agents.filter(a => a.state === "busy").length;
     statsRow.innerHTML = `
       <div class="stat-card"><div class="stat-value" style="color:var(--success)">${online}</div><div class="stat-label">在线</div></div>
       <div class="stat-card"><div class="stat-value" style="color:var(--warn)">${busy}</div><div class="stat-label">忙碌</div></div>
       <div class="stat-card"><div class="stat-value">${agents.length}</div><div class="stat-label">总数</div></div>
     `;
     grid.innerHTML = agents.map(a => {
-      const status = !a.online ? "offline" : a.busy ? "busy" : "online";
+      const alive = a.alive !== false;
+      const status = !alive ? "offline" : a.state === "busy" ? "busy" : "online";
       const dotClass = `status-${status}`;
-      const statusText = !a.online ? "离线" : a.busy ? "忙碌" : "在线";
+      const statusText = !alive ? "离线" : a.state === "busy" ? "忙碌" : "在线";
+      const colorVar = !alive ? "muted" : a.state === "busy" ? "warn" : "success";
       return `
       <div class="agent-card">
         <div class="agent-header">
           <div class="agent-name"><span class="status-dot ${dotClass}"></span>${a.id}</div>
-          <div style="font-size:0.8rem;color:var(--muted)">心跳 ${a.heartbeat_age}s</div>
+          <div style="font-size:0.8rem;color:var(--muted)">心跳 ${a.last_heartbeat || 0}s</div>
         </div>
         <div class="agent-info">
-          <div class="info-item"><div class="info-label">状态</div><div class="info-value" style="color:var(--${status==='online'?'success':status==='busy'?'warn':'muted'})">${statusText}</div></div>
-          <div class="info-item"><div class="info-label">心跳</div><div class="info-value">${a.heartbeat_age}s</div></div>
+          <div class="info-item"><div class="info-label">状态</div><div class="info-value" style="color:var(--${colorVar})">${statusText}</div></div>
+          <div class="info-item"><div class="info-label">心跳</div><div class="info-value">${a.last_heartbeat || 0}s</div></div>
           ${a.info?.hostname?`<div class="info-item"><div class="info-label">主机名</div><div class="info-value">${a.info.hostname}</div></div>`:""}
           ${a.info?.username?`<div class="info-item"><div class="info-label">用户</div><div class="info-value">${a.info.username}</div></div>`:""}
+          <div class="info-item"><div class="info-label">认证</div><div class="info-value" style="color:${a.authenticated?'var(--success)':'var(--danger)'}">${a.authenticated?'✅ 已认证':'❌ 未认证'}</div></div>
         </div>
-        ${a.task?`<div class="task-bar"><span class="label">当前任务:</span>${a.task}</div>`:""}
+        ${a.current_task?`<div class="task-bar"><span class="label">当前任务:</span>${a.current_task}</div>`:""}
       </div>`;
     }).join("");
   }
 
-  // SSE 订阅
+  // 渲染授权
+  function renderAuth(auth) {
+    if (!auth || (!auth.granted?.length && !auth.pending)) {
+      authList.innerHTML = '<div class="empty-state" style="padding:16px;"><div class="icon">🔓</div><div>无活跃授权</div></div>';
+      return;
+    }
+    let html = '';
+    (auth.granted || []).forEach(g => {
+      const tag = g.permanent
+        ? '<span class="auth-tag perm">永久</span>'
+        : `<span class="auth-tag temp">${g.ttl_desc}</span>`;
+      html += `<div class="auth-item"><span><span class="op-name">${g.op}</span>${tag}</span><button class="btn btn-danger btn-sm" onclick="revokeOp('${g.op}')">吊销</button></div>`;
+    });
+    if (auth.pending > 0) {
+      html += `<div class="auth-item"><span><span class="op-name" style="color:var(--warn)">等待确认</span><span class="auth-tag pending">${auth.pending} 项</span></span></div>`;
+    }
+    authList.innerHTML = html;
+  }
+
+  // 全局函数
+  window.revokeOp = async function(op) {
+    try {
+      await window.AstrBotPluginPage.apiPost("panel/auth/revoke", { op });
+      showToast(`✅ 已吊销 ${op}`, "success");
+      loadData();
+    } catch(e) { showToast(`❌ ${e.message}`, "error"); }
+  };
+  window.revokeAll = async function() {
+    if (!confirm("确定吊销所有授权？")) return;
+    try {
+      await window.AstrBotPluginPage.apiPost("panel/auth/revoke", {});
+      showToast("✅ 已吊销所有授权", "success");
+      loadData();
+    } catch(e) { showToast(`❌ ${e.message}`, "error"); }
+  };
+  window.verifyAudit = async function() {
+    integrityBadge.className = "integrity integrity-unknown";
+    integrityBadge.textContent = "校验中...";
+    try {
+      const res = await window.AstrBotPluginPage.apiGet("panel/audit/verify");
+      if (res.integrity) {
+        integrityBadge.className = "integrity integrity-ok";
+        integrityBadge.textContent = `✅ 审计完整 (${res.ok_count} 条)`;
+        showToast(`✅ 审计完整，共 ${res.ok_count} 条`, "success");
+      } else {
+        integrityBadge.className = "integrity integrity-bad";
+        integrityBadge.textContent = `⚠️ 发现 ${res.tampered_lines.length} 行被篡改!`;
+        showToast(`⚠️ 发现 ${res.tampered_lines.length} 行被篡改!`, "error");
+      }
+    } catch(e) {
+      integrityBadge.className = "integrity integrity-bad";
+      integrityBadge.textContent = `❌ 校验失败`;
+      showToast(`❌ ${e.message}`, "error");
+    }
+  };
+
+  // 加载数据
+  async function loadData() {
+    try {
+      const params = new URLSearchParams({ ts: Date.now() });
+      const data = await window.AstrBotPluginPage.apiGet(`panel/data.json?${params}`);
+      renderAgents(data.agents || []);
+      renderAuth(data.auth || {});
+      // 审计完整性
+      if (data.audit?.integrity !== null && data.audit?.integrity !== undefined) {
+        if (data.audit.integrity) {
+          integrityBadge.className = "integrity integrity-ok";
+          integrityBadge.textContent = `✅ 审计完整 (${data.audit.count} 条)`;
+        } else {
+          integrityBadge.className = "integrity integrity-bad";
+          integrityBadge.textContent = `⚠️ 审计可能不完整`;
+        }
+      }
+      // 版本号
+      if (data.version) $("#version").textContent = data.version;
+    } catch(e) {
+      console.error("[Dashboard] 加载失败", e);
+    }
+  }
+
+  // SSE 订阅（实时 Agent 状态）
   try {
     const sub = window.AstrBotPluginPage.subscribeSSE("agents", {
-      onOpen: () => { console.log("[Dashboard] SSE 已连接"); },
+      onOpen: () => console.log("[Dashboard] SSE 已连接"),
       onMessage: (ev) => {
         try {
           const data = ev.parsed || JSON.parse(ev.raw);
-          render(data);
+          renderAgents(data);
         } catch(e) { console.warn("[Dashboard] 解析失败", e); }
       },
-      onError: (err) => { console.error("[Dashboard] SSE 错误", err); },
+      onError: (err) => console.error("[Dashboard] SSE 错误", err),
     });
     window.addEventListener("beforeunload", () => sub.unsubscribe?.());
   } catch(e) {
-    grid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>SSE 连接失败: ${e.message}</div></div>`;
+    console.warn("[Dashboard] SSE 不可用，降级为轮询", e);
   }
+
+  // 启动：先加载一次完整数据，然后每 5 秒刷新授权/审计
+  loadData();
+  setInterval(loadData, 5000);
 </script>
 </body>
 </html>
