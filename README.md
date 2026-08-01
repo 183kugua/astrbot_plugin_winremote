@@ -1,11 +1,6 @@
-# WinRemote V0.9.0 - AstrBot Remote Control Windows Plugin
+# WinRemote - AstrBot Remote Control Windows Plugin
 
 通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。
-
-## 许可证
-
-本项目采用 **GNU Affero General Public License v3.0 (AGPL-3.0)**，与 AstrBot 主项目保持一致。
-详见 `LICENSE` 文件。redistributing 时请保留版权声明。
 
 ## 架构
 
@@ -19,76 +14,7 @@
                                               |- screenshot (Pillow -> base64)
                                               |- pyautogui key/mouse
                                               |- file read/write (path whitelist)
-```
 
-## 文件结构 (V0.9.0)
-
-```
-astrbot_plugin_winremote/
-├── astrbot_plugin_winremote.py  ✨ V0.9.0 入口：AstrBot 加载器认这个文件名
-├── metadata.yaml               # AstrBot 插件身份证（必须，name 与目录一致）
-├── .gitignore               # Git 忽略规则
-├── LICENSE                  # GNU AGPL-3.0
-├── __init__.py              # 插件主体 (WS 服务端 + 指令 + Web API)
-├── _conf_schema.json        # 配置 Schema (8 大分组, 38 字段)
-├── winremote_agent.py       # Windows Agent (反连 WS + 动作分发)
-├── webui_panel.py          # 主面板小组件 (后端 + 前端)
-├── install_agent.bat        # Windows 一键部署
-├── agent_admin.bat         # Windows 服务管理菜单
-├── README.md                # 本文件
-├── pyproject.toml          # ruff + pytest 配置
-├── tests/                   # 测试代码 (52 个用例)
-│   ├── __init__.py
-│   ├── test_config.py       # 配置 / 校验 / 审计
-│   ├── test_security.py     # Token / 密码 / 注入拦截
-│   └── test_agent_protocol.py  # Agent 生命周期 / SSE
-├── pages/
-│   ├── dashboard/          # 实时状态面板 (SSE)
-│   ├── settings/           # 可视化配置页
-│   └── logs/              # 审计日志查看器
-└── .astrbot-plugin/i18n/
-    ├── zh-CN.json
-    └── en-US.json
-```
-
-## metadata.yaml 字段说明
-
-| 字段 | 是否必须 | 说明 |
-|---|---|---|
-| `name` | ✅ 必须 | 插件唯一标识，**必须与目录名完全一致**（AstrBot 靠它识别插件） |
-| `display_name` | 可选 | WebUI / 插件市场展示名（v4.5.0+） |
-| `desc` | ✅ 必须 | 插件完整描述 |
-| `short_desc` | 可选 | 插件卡片一句话摘要 |
-| `version` | ✅ 必须 | 版本号，必须带 `v` 前缀，如 `v0.6.0` |
-| `author` | ✅ 必须 | 作者名 |
-| `repo` | ✅ 必须 | 源代码仓库地址 |
-| `tags` | 可选 | 插件市场标签数组 |
-| `astrbot_version` | 可选 | 依赖的 AstrBot 版本范围（PEP 440，不带 v 前缀） |
-| `support_platforms` | 可选 | 支持的适配器平台列表（不填则支持所有） |
-| `dependencies` | 可选 | 依赖的其他插件名称数组 |
-| `license` | 可选 | 许可证标识 |
-
-> ⚠️ **重要**：`name` 字段必须与插件目录名一致，否则 AstrBot 会报
-> `压缩包不是合法的 AstrBot 插件: 未找到 metadata.yaml 或 metadata.yml`
-
-## 部署步骤
-
-
-
-### 1. 服务器: 安装插件
-
-```bash
-cp -r astrbot_plugin_winremote/ ~/.local/share/astrbot/data/plugins/
-sudo systemctl restart astrbot
-```
-
-### 2. WebUI 配置
-
-进入 AstrBot WebUI -> 插件 -> WinRemote -> 配置:
-- `secret_token`: 填一个长随机字符串 (建议 `openssl rand -hex 32`)
-- `admin_qq`: 填你的 QQ 号 (数组格式)
-- `ws_host`: 强烈建议 `127.0.0.1`
-- 其他按需调整
 
 ### 3. SSH 隧道 (强烈推荐)
 
@@ -153,80 +79,6 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 | 高级配置 | `/pages/settings/` | 可视化编辑所有配置项 |
 | 审计日志 | `/pages/logs/` | 分页查看 + 筛选 + 导出 |
 
-## V0.5 新增: 测试
-
-V0.5 开始附带完整测试套件，覆盖:
-- 配置加载与缺省兜底
-- 四重命令校验 (黑名单 / 注入 / 正则 / 白名单)
-- Token 认证与二次密码
-- Agent 注册 / 心跳 / 离线判定 / 任务分发
-- 审计日志读写与轮转
-- Web API (SSE / 审计 / 设置 / Ping)
-
-运行测试:
-```bash
-pip install pytest pytest-asyncio ruff
-pytest tests/ -v
-```
-
-代码质量:
-```bash
-ruff check .          # lint
-ruff format --check .  # format check
-ruff format .          # auto-format
-```
-
-## V0.5.1 修复
-
-| 问题 | 根因 | 修复 |
-|------|------|------|
-| test_handshake_success 失败 | agent 在 finally 中被移除后断言 | 改为检查 ws.send 调用 |
-| test_heartbeat_keeps_alive 失败 | 同上 | 改为检查 heartbeat_ack 发送 |
-| test_invalid_json_ignored 失败 | 迭代器耗尽后 agent 被移除 | 改为检查 send 日志 |
-| test_sends_and_waits 失败 | agent.authenticated 未设置 | 测试中显式设置 |
-| test_missing_token_rejected 失败 | recv 立即抛异常跳过校验 | recv 先返回消息再关闭 |
-
----
-
-## 📜 更新日志 (Changelog)
-
-### v0.9.4 (2026-07-31) - ✨ 代码规范优化版
-
-**修复与改进：**
-- ✅ 修复 `ruff` Linter 检测到的所有代码规范问题（0 errors）
-- ✅ 修正 `Context` 类型注解导入缺失问题（从 `astrbot.api.star` 导入）
-- ✅ 自动格式化导入顺序，符合 PEP 8 标准
-- ✅ 清理空白行多余字符
-- ✅ Schema JSON 完整性验证通过
-
-**审核准备：**
-- 🎯 完全满足 AstrBot 插件商店审核要求
-- 🎯 打包体积：62KB（远小于限制）
-- 🎯 所有核心功能保留，无兼容性破坏
-
-### v0.9.3 (2026-07-31) - 🔧 配置类型修复版
-
-**重大修复：**
-- ✅ 修复 `_conf_schema.json` 中 `type: "integer"` 应改为 `"int"` 的错误
-- ✅ 统一所有 38 个配置字段使用 AstrBot 支持的白名单类型
-- ⚠️ 此版本解决了 Admin 在 v4.26.8 加载失败的紧急问题
-
-### v0.9.0 - 🏗️ 架构重构版
-
-**新增特性：**
-- ✨ WebUI 可视化配置页面
-- ✨ 审计日志查看器（分页 + 筛选 + 导出）
-- ✨ SSE 实时推送 Agent 状态面板
--  完整国际化支持（中文/英文）
-
-### v0.6.0 - 🚀 正式首发版
-
-**核心功能：**
-- 💻 QQ 远程控制 Windows（命令执行、截图、键鼠模拟、文件读写）
-- 🔐 Token 认证 + 二次密码双重保护
-- 🛡️ 四层命令过滤（黑名单/注入检测/正则/白名单）
-- 📊 审计日志记录所有操作
-- 🧪 52 个单元测试用例，覆盖率高
 
 **技术亮点：**
 - WebSocket 服务端 + Agent 反连架构
@@ -249,19 +101,41 @@ ruff format .          # auto-format
 - install_agent.bat 里的变量要手动编辑
 - 二次密码 / 加密校验仅服务端做，Agent 侧不校验
 
-## 开发原则合规
 
-- [x] 功能经过测试 (52 个用例全部通过)
-- [x] 包含良好注释和类型注解
-- [x] 持久化数据存 data/ 目录
-- [x] 良好错误处理，单点失败不崩溃插件
-- [x] 使用 ruff 格式化 (ruff check + ruff format)
-- [x] 未使用 requests 库 (纯 WebSocket 异步)
-- [x] 功能为新插件 (非扩增现有插件)
+> ⚠️ 【最高安全警示】本插为远程控制工具
+> ---
+> 🔴 绝对禁止行为：
+> 2. 使用弱Token（如`123456`、`admin`等易猜解字符串）
+> 3. 在未授权设备上安装Agent
+> 违反上述要求将导致设备被非法控制，后果自负！
+> ---
+> 🟡 高风险操作（默认关闭，启用需二次确认）：
+> - PowerShell执行、文件写入、键鼠模拟、任意命令执行
+> ---
+> 🟢 安全操作指引：
+> 1. Token长度≥16位随机字符
+> 2. 启用二次密码，定期轮换Token
+> 3. 查看`SECURITY.md`了解完整安全措施
+> 4.插件作者也是为了解决astrbot部署在别的服务器而无法让它使用本机电脑才写的这个插件...
+> 📌 合规承诺：本插件无任何后门，所有功能均有审计日志，滥用导致的法律责任由使用者承担。
 
-## 升级历史
+## 📜 更新日志 (Changelog)
 
-### V0.9.0 (当前)
+### v0.9.4 
+**修复与改进：**
+- ✅ 修复 `ruff` Linter 检测到的所有代码规范问题（0 errors）
+- ✅ 修正 `Context` 类型注解导入缺失问题（从 `astrbot.api.star` 导入）
+- ✅ 自动格式化导入顺序，符合 PEP 8 标准
+- ✅ 清理空白行多余字符
+- ✅ Schema JSON 完整性验证通过
+- 
+### v0.9.3
+**重大修复：**
+- ✅ 修复 `_conf_schema.json` 中 `type: "integer"` 应改为 `"int"` 的错误
+- ✅ 统一所有 38 个配置字段使用 AstrBot 支持的白名单类型
+- ⚠️ 此版本解决了 Admin 在 v4.26.8 加载失败的紧急问题
+- 
+### V0.9.0
 - ✨ **根因修复**：`_conf_schema.json` 改为 AstrBot 认的扁平结构（不再用分组嵌套）
 - ✅ 修复 `string indices must be integers, not 'str'` 加载错误
 - ✅ AstrBot `_parse_schema` 现在能正确解析所有 38 个配置项
