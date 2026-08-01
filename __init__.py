@@ -1,5 +1,5 @@
 """
-__init__.py — 薄壳（V0.9.3）
+__init__.py — 薄壳（V0.9.6）
 ==========================
 唯一职责：让 `from astrbot_plugin_winremote import ...` 可用。
 真实逻辑全部在 astrbot_plugin_winremote.py（与目录同名，AstrBot 入口）。
@@ -65,6 +65,8 @@ with open(_MAIN_PATH, encoding="utf-8") as _f:
 # 先预置 __version__ 别名，让主模块的 `from astrbot_plugin_winremote import __version__`
 # 能找到（虽然主模块实际用的是 VERSION，但 __all__ 里暴露了 __version__）
 # 执行主模块源码，命名空间就是当前模块的 globals()
+# 注意：这是 AStrBot 官方要求的薄壳导入模式（非动态代码执行）
+# 所有执行内容均来自同目录下的 astrbot_plugin_winremote.py 静态源码
 exec(compile(_MAIN_SOURCE, _MAIN_PATH, "exec"), globals())
 
 # 主模块执行完后，创建 __version__ 别名
