@@ -76,8 +76,15 @@ async def make_server(cfg, tmp_path, ctx=None):
         fake.wait_closed = AsyncMock()
         return fake
 
-    with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
-        await srv.start()
+    # 如果 websockets 未安装（测试环境常见），mock 整个模块
+    if plugin.websockets is None:
+        fake_ws_module = MagicMock()
+        fake_ws_module.serve = fake_serve
+        with patch.object(plugin, "websockets", fake_ws_module):
+            await srv.start()
+    else:
+        with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
+            await srv.start()
 
     return srv, fake_serve
 
