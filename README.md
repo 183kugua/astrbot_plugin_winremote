@@ -1,10 +1,10 @@
 # WinRemote V0.9.5 - AstrBot Remote Control Windows Plugin
 
-通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。
+通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。（可跨网络，无需内网穿透）
 
 ## ⚠️ 安全警告
 
-**本插件是远程控制工具，具有 RAT（远程访问木马）类似的底层能力。**
+**本插件是Astrbot的远程控制工具。**
 - 仅限授权内网运维场景使用
 - 滥用后果自负，作者不承担任何法律责任
 - 部署前务必阅读 SECURITY.md
@@ -17,7 +17,7 @@
 ## 架构
 
 ```
-手机QQ - NapCat(本机Win) - AStrBot(服务器)
+QQ - NapCat(本机Win) - AStrBot(服务器)
  |
  - WS server :6190
  |
@@ -28,10 +28,6 @@
  |- file read/write (path whitelist)
 ```
 
-## V0.9.5 核心改造：会话级临时授权
-
-V0.9.5 彻底改变了授权模型，从"永久开关"改为"会话级临时授权 + 私聊确认"：
-
 ### 三模式 TTL
 
 | 配置值 | 含义 | 申请条件 |
@@ -40,31 +36,6 @@ V0.9.5 彻底改变了授权模型，从"永久开关"改为"会话级临时授�
 | 0（永久） | 无过期 | 二次密码 + 管理员私聊确认 |
 | >1800 秒 | 超长授权 | 二次密码 + 管理员私聊确认 |
 
-### 授权流程
-
-```
-用户发 /win powershell Get-Process --pwd xxx
-        │
-        ▼
-  验证二次密码 ── 失败 → 拒绝 + 审计记录
-        │ 成功
-        ▼
-  检查 TTL 配置
-        │
-   ┌────┴────┐
-ttl<1800   ttl>=1800 或 ttl==0
-   │              │
-   ▼              ▼
-直接授权     向管理员私聊发送申请
-(5分钟)     "回复 同意/拒绝"
-               │
-        等待5分钟回复
-         ┌────┴────┐
-      "同意"       "拒绝"或超时
-         │              │
-         ▼              ▼
-    授权生效       取消授权
-  (永久或限时)
 
 ### 私聊确认机制
 
@@ -85,41 +56,6 @@ python auth.py data/winremote_audit.jsonl your-secret-token
 # 输出: {"ok_count": 152, "tampered_lines": [], "integrity": true}
 ```
 
-## 文件结构 (V0.9.5)
-
-```
-astrbot_plugin_winremote/
-├── main.py                    # 官方入口薄壳
-├── astrbot_plugin_winremote.py # 插件主逻辑（V0.9.5）
-├── auth.py                    # ✨ 新增：会话级授权 + HMAC 审计
-├── confirm.py                 # ✨ 新增：私聊确认等待回复
-├── metadata.yaml              # AStrBot 插件身份证
-├── _conf_schema.json         # 配置 Schema（9 大分组, 含 auth_ttl_seconds）
-├── __init__.py               # 薄壳
-├── winremote_agent.py        # Windows Agent (反连 WS + 动作分发)
-├── webui_panel.py           # 主面板小组件
-├── install_agent.bat         # Windows 交互式部署（无自动下载）
-├── agent_admin.bat           # Windows 服务管理菜单
-├── README.md                 # 本文件
-├── SECURITY.md               # 安全声明（v0.9.5 合规版）
-├── LICENSE                   # GNU AGPL-3.0
-├── .gitignore
-├── VERSION                   # 0.9.5
-├── pyproject.toml
-├── tests/                    # 测试代码 (52 个用例)
-│   ├── __init__.py
-│   ├── test_config.py
-│   ├── test_security.py
-│   └── test_agent_protocol.py
-├── pages/
-│   ├── dashboard/            # 实时状态面板 (SSE)
-│   ├── settings/             # 可视化配置页
-│   └── logs/                 # 审计日志查看器
-└── .astrbot-plugin/i18n/
-    ├── README.md
-    ├── en-US.json
-    └── zh-CN.json
-```
 
 ## 部署步骤
 
