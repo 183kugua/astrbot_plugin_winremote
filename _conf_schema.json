@@ -82,6 +82,22 @@
           "title": "要求加密连接",
           "description": "设为 true 时拒绝非 wss:// 的连接。生产环境强烈建议开启。",
           "default": false
+        },
+        "auth_ttl_seconds": {
+          "type": "int",
+          "title": "授权有效期(秒)",
+          "description": "高危操作会话授权有效期。默认300秒(5分钟)；设为0=永久(需私聊确认)；>1800秒也要私聊确认。重启插件后所有授权自动失效。",
+          "default": 300,
+          "min": 0,
+          "max": 3600
+        },
+        "admin_password_hash": {
+          "type": "string",
+          "title": "二次密码SHA-256哈希",
+          "description": "二次密码的 SHA-256 哈希值（用于 HMAC 审计签名）。可用 python3 -c 'import hashlib;print(hashlib.sha256(b\"密码\").hexdigest())' 生成。留空则使用明文密码。",
+          "default": "",
+          "minLength": 0,
+          "maxLength": 128
         }
       }
     },
