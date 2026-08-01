@@ -16,43 +16,100 @@
                                               |- file read/write (path whitelist)
 
 
-### 3. SSH 隧道 (强烈推荐)
+## 一、它能做什么（与不能做什么）
 
-Windows 本机执行:
-```bash
-ssh -N -R 6190:localhost:6190 root@你的服务器IP
+| 功能 |                                     | 默认状态 |             | 开启条件 |
+| 受限指令执行                               | ✅ 开 |                | — |
+| PowerShell / 任意命令                      | ❌ 关 |                | 会话级临时授权（5 分钟自动过期）+私聊确认
+| 文件读取 |                                 | ✅ 开 |                | — |
+| 文件写入 |                                 |❌ 关 |                 |临时授权 + 二次密码 |
+| 桌面截图 |                                 |✅ 开 |                 |— |
+| 键鼠模拟 |                                 |❌ 关 |                 | 临时授权 + 群确认卡片 |
+| 审计日志 |                                 |✅ 开（只读） |         | 不可关闭 |
+
+**设计哲学**：RAT 偷偷干，WinRemote 每次都问。所有高危操作必须：
+1. 管理员主动申请 → 二次密码验证
+2. 群里弹出确认卡片 → 另一管理员点 ✅
+3. 授权只活 5 分钟 → 过期自动收回
+4. 全程写入防篡改审计日志
+
+## 二、安装
+
+### 1. 服务端（AStrBot 插件端）
+3. 进 WebUI → 插件配置，填好：
+   - **共享密钥**：≥16 位随机字符（用 `openssl rand -hex 16` 生成）
+   - **二次验证密码**：可选，开了所有高危操作都要它
+   - 其他保持默认
+
+### 2. Agent 端（被控 Windows 机器）
+**方式 A：手动运行（推荐，最安全）**
 ```
-这样 Agent 连 `ws://127.0.0.1:6190`，流量走 SSH 加密隧道。
-
-### 4. Windows: 安装 Agent
-
-右键 `install_agent.bat` -> 以管理员身份运行
-- 编辑 bat 顶部 3 个变量: `SERVER_URL` / `TOKEN` / `AGENT_ID`
-- 脚本自动装依赖 -> 下 NSSM -> 注册服务 -> 开机自启
-
-### 5. Windows: 管理服务
-
-右键 `agent_admin.bat` -> 以管理员身份运行
-
-| 选项 | 功能 |
-|------|------|
-| [1] 启动 Agent | `nssm start WinRemoteAgent` |
-| [2] 停止 Agent | `nssm stop WinRemoteAgent` |
-| [3] 重启 Agent | `nssm restart WinRemoteAgent` |
-| [4] 查看状态 | 显示服务状态 + 配置摘要 |
-| [5] 安装服务 | 交互式安装向导 |
-| [6] 卸载服务 | 停止 + 删除服务 |
-| [7] 查看日志 | 显示 stdout/stderr 最近 20 行 |
-| [8] 编辑配置 | 用记事本打开 run_agent.bat |
-| [9] 查看实时输出 | `Get-Content -Wait -Tail 10` |
-
-### 6. 验证
-
-服务器终端:
-```bash
-tail -f ~/.local/share/astrbot/data/winremote/audit.jsonl
+# 直接跑，关掉窗口即停止
+python winremote_agent.py
 ```
-QQ 发 `/win 状态`，应返回 Agent 在线信息。
+
+**方式 B：注册为 Windows 服务（按需启动）**
+```
+# 用系统自带的 sc.exe，无需下载任何东西
+sc create WinRemoteAgent binPath= "C:\path\to\winremote_agent.py" start= demand
+sc description WinRemoteAgent "WinRemote 远程控制 Agent（按需启动）"
+# 需要时手动启动：sc start WinRemoteAgent
+```
+
+> ⚠️ **关于 NSSM**：本插件**不自动下载** NSSM。如确需，请自行从 https://nssm.cc/download 下载，校验 SHA256 后再用。
+
+## 三、日常使用
+
+### 基础指令（默认可用）
+```
+/win 状态          查看 Agent 在线状态
+/win shell ipconfig 执行白名单内的指令
+/win 截图         获取当前桌面
+/win ps            查看进程列表
+```
+
+### 高危操作（需授权）
+```
+# 1. 先申请授权（默认为5 分钟有效，可自行调整）
+/win auth powershell --pwd 你的二次密码
+
+# 2. 群里弹出确认卡片，另一管理员点 ✅
+
+# 3. 5 分钟内可执行
+/win shell powershell Get-Process
+
+# 4. 用完主动收回（可选）
+/win revoke powershell
+```
+
+## 四、安全自检清单
+
+安装后跑一遍，全过才算安全：
+- [ ] `secret_token` ≥ 16 位随机字符
+- [ ] `二次验证密码`已设置
+- [ ] WebSocket 绑定 `127.0.0.1`（仅本机）或内网 IP，**未映射公网**
+- [ ] `allow_powershell` / `allow_write` 在配置页显示为**关闭**
+- [ ] `审计日志`路径可访问，文件权限为**只读**
+- [ ] 跑 `python auth.py data/logs/winremote_audit.jsonl <你的token>` 输出 `"integrity": true`
+
+## 五、排错
+
+| 现象 | 排查 |
+|---|---|
+| Agent 连不上 | 检查防火墙是否放行端口、Token 是否一致 |
+| 指令被拒 | 看审计日志，是否未授权或已过期 |
+| 群卡片不弹 | 确认 AStrBot 版本 ≥ 4.17，且插件已注册卡片处理器 |
+| 日志校验失败 | 说明日志被改过，立即吊销 Token 并排查 |
+
+## 六、合规与责任
+
+- 本插件**无后门、无自动下载、无数据外传**
+- 所有操作**先写审计再执行**，日志防篡改
+- 仅限**授权内网运维**，公网暴露将触发自动熔断
+- 漏洞反馈：请在 GitHub 仓库提交 Issue
+
+> 详细安全机制见仓库根目录 `SECURITY.md`。
+
 
 ## QQ 指令
 
