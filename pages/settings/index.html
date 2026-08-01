@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WinRemote 高级配置</title>
+<title>WinRemote 高级配置 v0.9.6</title>
 <style>
   :root[data-theme="dark"] {
     --bg: #1e1e2e; --card: #181825; --fg: #cdd6f4;
@@ -18,14 +18,23 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); padding: 20px; }
   .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .header h1 { font-size: 1.3rem; }
+  .header h1 { font-size: 1.3rem; display:flex; align-items:center; gap:8px; }
   .header .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--accent); color: #fff; margin-left: 8px; }
+  .header .integrity { font-size: 0.75rem; padding: 3px 10px; border-radius: 8px; font-weight: 500; }
+  .integrity-ok { background: var(--success); color: #1e1e2e; }
+  .integrity-bad { background: var(--danger); color: #fff; }
+  .integrity-unknown { background: var(--warn); color: #1e1e2e; }
+
   .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { opacity: 0.85; }
   .btn-test { background: var(--warn); color: #1e1e2e; }
   .btn-test:hover { opacity: 0.85; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: 0.85; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
   .groups { display: grid; gap: 16px; }
   .group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .group-header { padding: 14px 18px; background: var(--input); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
@@ -35,6 +44,7 @@
   .group.collapsed .group-body { display: none; }
   .group-body { padding: 16px 18px; display: grid; gap: 14px; }
   .group-desc { font-size: 0.8rem; color: var(--muted); padding: 8px 12px; background: var(--input); border-radius: 8px; border-left: 3px solid var(--accent); }
+
   .field { display: grid; gap: 4px; }
   .field label { font-size: 0.85rem; font-weight: 500; }
   .field .hint { font-size: 0.75rem; color: var(--muted); }
@@ -46,26 +56,51 @@
   .field textarea { min-height: 60px; resize: vertical; font-family: monospace; }
   .field .toggle { display: flex; align-items: center; gap: 8px; }
   .field .toggle input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+
   .array-field { display: flex; gap: 8px; align-items: flex-start; }
   .array-field .items { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
   .array-item { display: inline-flex; align-items: center; gap: 4px; background: var(--input); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; }
   .array-item .remove { cursor: pointer; color: var(--danger); font-weight: bold; }
   .array-field input { flex: 1; min-width: 200px; }
-  .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; font-size: 0.9rem; z-index: 9999; animation: slideIn 0.3s ease; }
-  .toast.success { background: var(--success); color: #fff; }
-  .toast.error { background: var(--danger); color: #fff; }
-  .toast.info { background: var(--accent); color: #fff; }
-  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-  .actions { display: flex; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* 密码生成器 */
+  .pwd-gen { background: var(--input); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .pwd-gen h4 { font-size: 0.85rem; margin-bottom: 8px; color: var(--accent); }
+  .pwd-gen .row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .pwd-gen input { flex: 1; }
+  .pwd-gen .result { font-family: monospace; font-size: 0.8rem; word-break: break-all; padding: 6px 10px; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); margin-top: 6px; }
+  .pwd-gen .copy-btn { margin-top: 6px; }
+
+  .actions { display: flex; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
   .test-result { margin-top: 8px; font-size: 0.85rem; padding: 8px 12px; border-radius: 8px; display: none; }
   .test-result.ok { display: block; background: var(--input); border: 1px solid var(--success); color: var(--success); }
   .test-result.fail { display: block; background: var(--input); border: 1px solid var(--danger); color: var(--danger); }
+
+  /* 授权状态摘要 */
+  .auth-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .auth-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+  .auth-chip.granted { background: var(--success); color: #1e1e2e; }
+  .auth-chip.pending { background: var(--warn); color: #1e1e2e; }
+  .auth-chip.none { background: var(--input); color: var(--muted); border: 1px solid var(--border); }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; font-size: 0.9rem; z-index: 9999; animation: slideIn 0.3s ease; }
+  .toast.success { background: var(--success); color: #1e1e2e; }
+  .toast.error { background: var(--danger); color: #fff; }
+  .toast.info { background: var(--accent); color: #fff; }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 </style>
 </head>
 <body>
 <div class="header">
-  <h1>⚙️ WinRemote <span class="badge">高级配置 V0.4</span></h1>
+  <h1>⚙️ WinRemote <span class="badge" id="version">v0.9.6</span>
+    <span id="integrityBadge" class="integrity integrity-unknown">审计: 检测中...</span>
+  </h1>
   <div id="statusText" style="font-size:0.8rem;color:var(--muted)">加载中...</div>
+</div>
+
+<!-- 授权状态摘要 -->
+<div class="auth-summary" id="authSummary">
+  <span class="auth-chip none">加载授权状态中...</span>
 </div>
 
 <div class="groups" id="groups"></div>
@@ -73,40 +108,53 @@
 <div class="actions">
   <button class="btn btn-primary" id="saveBtn" onclick="saveConfig()">💾 保存配置</button>
   <button class="btn btn-test" id="testBtn" onclick="testConnection()">🔌 测试连接</button>
+  <button class="btn btn-danger btn-sm" onclick="revokeAllAuth()">🔓 吊销所有授权</button>
   <span id="testResult" class="test-result"></span>
 </div>
 
 <script type="module">
-  // 分组元数据（和 _conf_schema.json 的 groups 对应）
+  const $ = (s) => document.querySelector(s);
+
+  // ===== 分组元数据（v0.9.6 新增 auth 配置组）=====
   const GROUPS = [
     { key: "server", title: "① 服务端连接", desc: "WebSocket 服务端的监听地址与端口。强烈建议监听 127.0.0.1 并配合 SSH 隧道使用。" },
-    { key: "auth", title: "② 认证与安全", desc: "Token 校验 + 二次密码 + 防暴力破解。" },
-    { key: "admin", title: "③ 管理员与 Agent", desc: "哪些 QQ 号可以使用 /win 指令，以及 Agent 心跳与并发控制。" },
-    { key: "commands", title: "④ 指令白/黑名单", desc: "控制哪些命令可以被执行。建议开启严格白名单模式。" },
-    { key: "files", title: "⑤ 文件读写", desc: "限制 Agent 可读写的文件路径范围。" },
-    { key: "output", title: "⑥ 输出与截图", desc: "控制命令输出截断、流式分块以及截图格式与质量。" },
-    { key: "audit", title: "⑦ 审计日志", desc: "记录所有 /win 指令的触发者、目标 Agent、动作与结果。" },
-    { key: "security_warnings", title: "⑧ 安全警告", desc: "请务必阅读以下安全自检提示。", readonly: true },
+    { key: "auth_config", title: "② 授权配置（v0.9.6）", desc: "会话级临时授权的核心参数。TTL=0 或 >1800 秒时，需管理员私聊确认才生效。" },
+    { key: "auth_password", title: "③ 二次密码（v0.9.6 增强）", desc: "启用后所有指令需追加 --pwd。建议直接配置 SHA-256 哈希值，下方有生成器。" },
+    { key: "admin", title: "④ 管理员与 Agent", desc: "哪些 QQ 号可以使用 /win 指令，以及 Agent 心跳与并发控制。" },
+    { key: "commands", title: "⑤ 指令白/黑名单", desc: "控制哪些命令可以被执行。建议开启严格白名单模式。" },
+    { key: "files", title: "⑥ 文件读写", desc: "限制 Agent 可读写的文件路径范围。" },
+    { key: "output", title: "⑦ 输出与截图", desc: "控制命令输出截断、流式分块以及截图格式与质量。" },
+    { key: "audit", title: "⑧ 审计日志", desc: "记录所有 /win 指令的触发者、目标 Agent、动作与结果。HMAC-SHA256 防篡改。" },
+    { key: "security_warnings", title: "⑨ 安全警告", desc: "请务必阅读以下安全自检提示。", readonly: true },
   ];
 
-  // 字段类型映射（简化版，实际值从 config 读取）
+  // 字段类型映射
   const FIELD_TYPES = {
+    // server
     ws_host: "select", ws_port: "number", ws_path: "text",
-    secret_token: "password", admin_password: "password",
-    password_max_attempts: "number", password_ban_duration: "number",
-    require_encryption: "checkbox",
+    // auth_config (NEW in v0.9.6)
+    auth_ttl_seconds: "number",
+    // auth_password
+    admin_password: "password", admin_password_hash: "password",
+    // admin
     admin_qq: "array", allow_group: "checkbox",
     heartbeat_interval: "number", heartbeat_timeout: "number", max_agents: "number",
+    // commands
     allow_commands: "array", deny_commands: "array", deny_regex: "array",
     allow_powershell: "checkbox", strict_whitelist: "checkbox",
+    // files
     file_whitelist_paths: "array", file_blacklist_keywords: "array",
     file_max_read_bytes: "number", file_allow_write: "checkbox",
+    // output
     auto_screenshot: "checkbox",
     screenshot_format: "select", screenshot_quality: "number",
     max_output_bytes: "number", stream_chunk_size: "number",
     stream_interval_ms: "number", shell_timeout: "number",
+    // audit
     audit_enabled: "checkbox", audit_log_path: "text",
     audit_max_entries: "number", audit_rotation_mb: "number",
+    // security
+    require_encryption: "checkbox",
   };
 
   const FIELD_OPTIONS = {
@@ -115,35 +163,72 @@
   };
 
   const FIELD_HINTS = {
-    ws_host: "127.0.0.1=仅本机(推荐) | 0.0.0.0=所有网卡 | ::1=IPv6回环",
+    ws_host: "127.0.0.1=仅本机(推荐) | 0.0.0.0=所有网卡(危险)",
     ws_port: "1024-65535",
-    secret_token: "至少8位，建议32位随机字符串",
-    admin_password: "留空=不启用二次密码",
-    admin_qq: "可触发 /win 指令的 QQ 号列表",
+    auth_ttl_seconds: "默认300秒(5分钟)；0=永久(需私聊确认)；>1800需私聊确认",
+    admin_password: "明文密码（保存后建议改用哈希）",
+    admin_password_hash: "SHA-256 哈希值（推荐）。生成器在下方。",
+    admin_qq: "可触发 /win 指令的 QQ 号列表（私聊确认只认这些人）",
     allow_commands: "仅允许列表中的命令前缀",
     deny_commands: "无论白名单如何，命中即拒绝",
     file_whitelist_paths: "Agent 仅可访问这些目录",
     screenshot_quality: "1-100，越大越清晰体积越大",
+    auth_ttl_seconds: "高危授权有效期(秒)。0=永久(需私聊确认)",
+  };
+
+  // 分组 → 字段
+  const GROUP_FIELDS = {
+    server: ["ws_host", "ws_port", "ws_path"],
+    auth_config: ["auth_ttl_seconds"],
+    auth_password: ["admin_password", "admin_password_hash"],
+    admin: ["admin_qq", "allow_group", "heartbeat_interval", "heartbeat_timeout", "max_agents"],
+    commands: ["allow_commands", "deny_commands", "deny_regex", "allow_powershell", "strict_whitelist"],
+    files: ["file_whitelist_paths", "file_blacklist_keywords", "file_max_read_bytes", "file_allow_write"],
+    output: ["auto_screenshot", "screenshot_format", "screenshot_quality", "max_output_bytes", "stream_chunk_size", "stream_interval_ms", "shell_timeout"],
+    audit: ["audit_enabled", "audit_log_path", "audit_max_entries", "audit_rotation_mb"],
+    security_warnings: ["_warn_ssh_tunnel", "_warn_short_token", "_warn_no_password", "_warn_require_encryption"],
   };
 
   let configData = {};
+  let authData = { granted: [], pending: 0 };
 
   // 初始化
   const ctx = await window.AstrBotPluginPage.ready();
   applyTheme(ctx);
   window.AstrBotPluginPage.onContext((c) => applyTheme(c));
 
-  async function loadConfig() {
+  // 加载配置 + 授权状态 + 审计完整性
+  async function loadAll() {
     try {
-      const res = await window.AstrBotPluginPage.apiGet("settings/load");
-      configData = res || {};
+      const [cfgRes, authRes, verifyRes] = await Promise.all([
+        window.AstrBotPluginPage.apiGet("settings/load"),
+        window.AstrBotPluginPage.apiGet("panel/auth.json").catch(()=>({})),
+        window.AstrBotPluginPage.apiGet("panel/audit/verify").catch(()=>({})),
+      ]);
+      configData = cfgRes || {};
+      authData = {
+        granted: (authRes.granted || []),
+        pending: (authRes.pending || 0),
+      };
       renderGroups();
+      renderAuthSummary();
+      // 审计完整性
+      const badge = $("#integrityBadge");
+      if (verifyRes.integrity !== undefined) {
+        if (verifyRes.integrity) {
+          badge.className = "integrity integrity-ok";
+          badge.textContent = `✅ 审计完整 (${verifyRes.ok_count||0} 条)`;
+        } else {
+          badge.className = "integrity integrity-bad";
+          badge.textContent = `⚠️ 审计异常 (${verifyRes.tampered_lines?.length||0} 行篡改)`;
+        }
+      }
       $("#statusText").textContent = "✅ 配置已加载";
       $("#statusText").style.color = "var(--success)";
     } catch (e) {
       $("#statusText").textContent = `⚠️ 加载失败: ${e.message}`;
       $("#statusText").style.color = "var(--danger)";
-      renderGroups(); // 用默认值渲染
+      renderGroups();
     }
   }
 
@@ -151,11 +236,12 @@
     document.documentElement.setAttribute("data-theme", c?.isDark ? "dark" : "light");
   }
 
+  // ===== 渲染 =====
   function renderGroups() {
     const container = $("#groups");
     container.innerHTML = GROUPS.map(g => {
-      const fields = getGroupFields(g.key);
-      const readonly = g.readonly ? "readonly" : "";
+      const fields = GROUP_FIELDS[g.key] || [];
+      const readonly = g.readonly ? "disabled" : "";
       return `
       <div class="group" id="grp-${g.key}">
         <div class="group-header" onclick="toggleGroup('${g.key}')">
@@ -164,26 +250,12 @@
         </div>
         <div class="group-desc">${g.desc}</div>
         <div class="group-body">
-          ${fields.map(f => renderField(g.key, f, readonly)).join("")}
+          ${fields.map(f => renderField(g.key, f, g.readonly)).join("")}
+          ${g.key === "auth_password" ? renderPwdGen() : ""}
         </div>
       </div>`;
     }).join("");
-    // 渲染数组字段的事件绑定
     bindArrayEvents();
-  }
-
-  function getGroupFields(groupKey) {
-    const map = {
-      server: ["ws_host", "ws_port", "ws_path"],
-      auth: ["secret_token", "admin_password", "password_max_attempts", "password_ban_duration", "require_encryption"],
-      admin: ["admin_qq", "allow_group", "heartbeat_interval", "heartbeat_timeout", "max_agents"],
-      commands: ["allow_commands", "deny_commands", "deny_regex", "allow_powershell", "strict_whitelist"],
-      files: ["file_whitelist_paths", "file_blacklist_keywords", "file_max_read_bytes", "file_allow_write"],
-      output: ["auto_screenshot", "screenshot_format", "screenshot_quality", "max_output_bytes", "stream_chunk_size", "stream_interval_ms", "shell_timeout"],
-      audit: ["audit_enabled", "audit_log_path", "audit_max_entries", "audit_rotation_mb"],
-      security_warnings: ["_warn_ssh_tunnel", "_warn_short_token", "_warn_no_password", "_warn_require_encryption"],
-    };
-    return map[groupKey] || [];
   }
 
   function renderField(groupKey, fieldKey, readonly) {
@@ -204,18 +276,52 @@
     if (type === "array") {
       const items = Array.isArray(value) ? value : [];
       const itemsHtml = items.map((v,i) => `<span class="array-item">${v} <span class="remove" onclick="removeArrayItem('${fieldKey}',${i})">×</span></span>`).join("");
-      return `<div class="field"><label>${fieldKey}</label><div class="array-field"><div class="items" id="arr-${fieldKey}">${itemsHtml}</div><input type="text" id="arr-input-${fieldKey}" placeholder="添加新项..." ${roAttr}><button class="btn btn-primary" onclick="addArrayItem('${fieldKey}')">+</button></div>${hint?`<div class="hint">${hint}</div>`:""}</div>`;
+      return `<div class="field"><label>${fieldKey}</label><div class="array-field"><div class="items" id="arr-${fieldKey}">${itemsHtml}</div><input type="text" id="arr-input-${fieldKey}" placeholder="添加新项..." ${roAttr}><button class="btn btn-primary btn-sm" onclick="addArrayItem('${fieldKey}')">+</button></div>${hint?`<div class="hint">${hint}</div>`:""}</div>`;
     }
     if (type === "number") {
       return `<div class="field"><label>${fieldKey}</label><input type="number" data-key="${fieldKey}" value="${value||0}" ${roAttr}>${hint?`<div class="hint">${hint}</div>`:""}</div>`;
     }
-    // text / password
     const inputType = type === "password" ? "password" : "text";
-    return `<div class="field"><label>${fieldKey}</label><input type="${inputType}" data-key="${fieldKey}" value="${(value||"").toString().replace(/"/g,'')}" ${roAttr}>${hint?`<div class="hint">${hint}</div>`:""}</div>`;
+    return `<div class="field"><label>${fieldKey}</label><input type="${inputType}" data-key="${fieldKey}" value="${(value||"").toString().replace(/"/g,"&quot;")}" ${roAttr}>${hint?`<div class="hint">${hint}</div>`:""}</div>`;
   }
 
-  // 数组操作
-  function addArrayItem(key) {
+  // 密码哈希生成器
+  function renderPwdGen() {
+    return `
+    <div class="pwd-gen">
+      <h4>🔐 SHA-256 密码哈希生成器</h4>
+      <div class="row">
+        <input type="password" id="pwdInput" placeholder="输入明文密码..." style="background:var(--input);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--fg);font-size:0.85rem;flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="genHash()">生成哈希</button>
+        <button class="btn btn-sm" style="background:var(--input);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 10px;cursor:pointer;" onclick="copyHash()">📋 复制</button>
+      </div>
+      <div class="result" id="pwdResult" style="display:none;"></div>
+    </div>`;
+  }
+
+  // 授权摘要
+  function renderAuthSummary() {
+    const el = $("#authSummary");
+    const granted = authData.granted || [];
+    const pending = authData.pending || 0;
+    let html = '';
+    if (granted.length === 0 && pending === 0) {
+      html = '<span class="auth-chip none">📭 无活跃授权</span>';
+    } else {
+      granted.forEach(g => {
+        const icon = g.permanent ? "🔒" : "⏱️";
+        const desc = g.permanent ? "永久" : (g.ttl_desc || `${g.remaining||0}s`);
+        html += `<span class="auth-chip granted">${icon} ${g.op} (${desc})</span>`;
+      });
+      if (pending > 0) {
+        html += `<span class="auth-chip pending">⏳ ${pending} 项等待确认</span>`;
+      }
+    }
+    el.innerHTML = html;
+  }
+
+  // ===== 数组操作 =====
+  window.addArrayItem = function(key) {
     const input = $(`#arr-input-${key}`);
     const val = input.value.trim();
     if (!val) return;
@@ -223,58 +329,64 @@
     configData[key].push(val);
     input.value = "";
     refreshArrayDisplay(key);
-  }
-  function removeArrayItem(key, idx) {
+  };
+  window.removeArrayItem = function(key, idx) {
     configData[key].splice(idx, 1);
     refreshArrayDisplay(key);
-  }
+  };
   function refreshArrayDisplay(key) {
     const container = $(`#arr-${key}`);
     if (!container) return;
-    container.innerHTML = configData[key].map((v,i) => `<span class="array-item">${v} <span class="remove" onclick="removeArrayItem('${key}',${i})">×</span></span>`).join("");
+    container.innerHTML = (configData[key]||[]).map((v,i) => `<span class="array-item">${v} <span class="remove" onclick="removeArrayItem('${key}',${i})">×</span></span>`).join("");
   }
   function bindArrayEvents() {
-    // Enter 键添加
     document.querySelectorAll('[id^="arr-input-"]').forEach(input => {
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           const key = input.id.replace("arr-input-", "");
-          addArrayItem(key);
+          window.addArrayItem(key);
         }
       });
     });
   }
 
-  // 收集表单数据
+  // ===== 密码哈希生成 =====
+  window.genHash = async function() {
+    const input = $("#pwdInput");
+    const result = $("#pwdResult");
+    const pwd = input.value;
+    if (!pwd) { showToast("请输入密码", "error"); return; }
+    // 使用 Web Crypto API
+    const enc = new TextEncoder().encode(pwd);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+    result.style.display = "block";
+    result.textContent = hex;
+    showToast("✅ 哈希已生成，可复制到 admin_password_hash", "success");
+  };
+  window.copyHash = function() {
+    const result = $("#pwdResult");
+    if (!result.textContent) return;
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      showToast("✅ 已复制到剪贴板", "success");
+    }).catch(() => showToast("❌ 复制失败", "error"));
+  };
+
+  // ===== 收集表单 =====
   function collectForm() {
     const form = {};
-    // checkboxes
-    document.querySelectorAll('input[type="checkbox"][data-key]').forEach(el => {
-      form[el.dataset.key] = el.checked;
-    });
-    // selects
-    document.querySelectorAll('select[data-key]').forEach(el => {
-      form[el.dataset.key] = el.value;
-    });
-    // numbers
-    document.querySelectorAll('input[type="number"][data-key]').forEach(el => {
-      form[el.dataset.key] = Number(el.value);
-    });
-    // texts & passwords
-    document.querySelectorAll('input[type="text"][data-key], input[type="password"][data-key]').forEach(el => {
-      form[el.dataset.key] = el.value;
-    });
-    // arrays
+    document.querySelectorAll('input[type="checkbox"][data-key]').forEach(el => { form[el.dataset.key] = el.checked; });
+    document.querySelectorAll('select[data-key]').forEach(el => { form[el.dataset.key] = el.value; });
+    document.querySelectorAll('input[type="number"][data-key]').forEach(el => { form[el.dataset.key] = Number(el.value); });
+    document.querySelectorAll('input[type="text"][data-key], input[type="password"][data-key]').forEach(el => { form[el.dataset.key] = el.value; });
     Object.keys(configData).forEach(key => {
-      if (Array.isArray(configData[key])) {
-        form[key] = configData[key];
-      }
+      if (Array.isArray(configData[key])) form[key] = configData[key];
     });
     return form;
   }
 
-  // 保存
+  // ===== 保存 =====
   window.saveConfig = async function() {
     const btn = $("#saveBtn");
     btn.disabled = true;
@@ -282,11 +394,11 @@
     try {
       const data = collectForm();
       const res = await window.AstrBotPluginPage.apiPost("settings/save", data);
-      if (res.ok) {
+      if (res.ok || res.success) {
         showToast("✅ 配置已保存", "success");
         configData = { ...configData, ...data };
       } else {
-        showToast(`❌ 保存失败: ${res.msg}`, "error");
+        showToast(`❌ 保存失败: ${res.msg||res.error||"未知错误"}`, "error");
       }
     } catch (e) {
       showToast(`❌ 错误: ${e.message}`, "error");
@@ -296,7 +408,7 @@
     }
   };
 
-  // 测试连接
+  // ===== 测试连接 =====
   window.testConnection = async function() {
     const btn = $("#testBtn");
     const result = $("#testResult");
@@ -309,10 +421,10 @@
       const res = await window.AstrBotPluginPage.apiGet("settings/test");
       if (res.ok) {
         result.className = "test-result ok";
-        result.textContent = `✅ 连接成功 | Agent: ${res.agent} | 延迟: ${res.latency_ms}ms`;
+        result.textContent = `✅ 连接成功 | Agent: ${res.agent||"N/A"} | 延迟: ${res.latency_ms||0}ms`;
       } else {
         result.className = "test-result fail";
-        result.textContent = `❌ ${res.msg}`;
+        result.textContent = `❌ ${res.msg||res.error||"连接失败"}`;
       }
     } catch (e) {
       result.className = "test-result fail";
@@ -323,13 +435,23 @@
     }
   };
 
-  // 分组折叠
+  // ===== 吊销所有授权 =====
+  window.revokeAllAuth = async function() {
+    if (!confirm("确定吊销所有授权？")) return;
+    try {
+      await window.AstrBotPluginPage.apiPost("panel/auth/revoke", {});
+      showToast("✅ 已吊销所有授权", "success");
+      loadAll();
+    } catch(e) { showToast(`❌ ${e.message}`, "error"); }
+  };
+
+  // ===== 分组折叠 =====
   window.toggleGroup = function(key) {
     const el = $(`#grp-${key}`);
     if (el) el.classList.toggle("collapsed");
   };
 
-  // Toast
+  // ===== Toast =====
   function showToast(msg, type) {
     const t = document.createElement("div");
     t.className = `toast ${type}`;
@@ -339,7 +461,7 @@
   }
 
   // 启动
-  loadConfig();
+  loadAll();
 </script>
 </body>
 </html>
