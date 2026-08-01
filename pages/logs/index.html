@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WinRemote 审计日志</title>
+<title>WinRemote 审计日志 v0.9.6</title>
 <style>
   :root[data-theme="dark"] {
     --bg: #1e1e2e; --card: #181825; --fg: #cdd6f4;
@@ -17,9 +17,14 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); padding: 20px; }
-  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .header h1 { font-size: 1.3rem; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap:wrap; gap:10px; }
+  .header h1 { font-size: 1.3rem; display:flex; align-items:center; gap:8px; }
   .header .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--accent); color: #fff; margin-left: 8px; }
+  .header .integrity { font-size: 0.75rem; padding: 3px 10px; border-radius: 8px; font-weight: 500; }
+  .integrity-ok { background: var(--success); color: #1e1e2e; }
+  .integrity-bad { background: var(--danger); color: #fff; }
+  .integrity-unknown { background: var(--warn); color: #1e1e2e; }
+
   .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
   .controls select, .controls input {
     background: var(--input); border: 1px solid var(--border); border-radius: 8px;
@@ -28,25 +33,45 @@
   .btn { padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-success { background: var(--success); color: #1e1e2e; }
+  .btn-warn { background: var(--warn); color: #1e1e2e; }
   .btn:hover { opacity: 0.85; }
+
   table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   th, td { padding: 8px 12px; text-align: left; font-size: 0.82rem; border-bottom: 1px solid var(--border); }
   th { background: var(--input); font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
   tr:hover td { background: var(--input); }
-  .pagination { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+  .pagination { display: flex; gap: 8px; align-items: center; margin-top: 16px; flex-wrap:wrap; }
   .pagination .btn { min-width: 36px; }
   .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; }
   .tag-ok { background: var(--success); color: #1e1e2e; }
   .tag-fail { background: var(--danger); color: #fff; }
+  .tag-auth { background: var(--accent); color: #fff; }
+  .tag-auth-perm { background: var(--warn); color: #1e1e2e; }
+  .tag-auth-revoke { background: var(--danger); color: #fff; }
+  .tag-pending { background: var(--warn); color: #1e1e2e; }
   .empty { text-align: center; padding: 40px; color: var(--muted); }
   .loading { text-align: center; padding: 40px; color: var(--accent); }
+  .search-box { flex: 1; min-width: 200px; max-width: 300px; }
+
+  /* 统计条 */
+  .stats-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 500; }
+  .stat-chip.ok { background: var(--success); color: #1e1e2e; }
+  .stat-chip.fail { background: var(--danger); color: #fff; }
+  .stat-chip.auth { background: var(--accent); color: #fff; }
+  .stat-chip.total { background: var(--input); color: var(--muted); border: 1px solid var(--border); }
 </style>
 </head>
 <body>
 <div class="header">
   <h1>📋 审计日志 <span class="badge" id="totalBadge">...</span></h1>
-  <button class="btn btn-success" onclick="exportLogs()">⬇️ 导出日志</button>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="integrityBadge" class="integrity integrity-unknown">检测中...</span>
+    <button class="btn btn-primary btn-sm" onclick="verifyNow()">🔍 校验</button>
+  </div>
 </div>
+
+<div class="stats-bar" id="statsBar"></div>
 
 <div class="controls">
   <select id="filterAgent"><option value="">全部 Agent</option></select>
@@ -58,8 +83,10 @@
     <option value="keypress">keypress</option>
     <option value="mouse">mouse</option>
     <option value="readfile">readfile</option>
-    <option value="password_fail">password_fail</option>
+    <option value="auth">授权相关</option>
+    <option value="password">密码相关</option>
   </select>
+  <input type="text" id="searchBox" class="search-box" placeholder="🔍 搜索内容...">
   <input type="number" id="pageSize" value="20" min="5" max="100" style="width:80px" title="每页条数">
   <span style="color:var(--muted);font-size:0.8rem">条/页</span>
 </div>
@@ -75,6 +102,7 @@
   let currentPage = 1;
   let totalPages = 1;
   let allData = [];
+  let verifyResult = null;
 
   // 初始化
   const ctx = await window.AstrBotPluginPage.ready();
@@ -85,7 +113,7 @@
     document.documentElement.setAttribute("data-theme", c?.isDark ? "dark" : "light");
   }
 
-  // 加载数据
+  // ===== 加载数据 =====
   async function loadPage(page) {
     const size = parseInt($("#pageSize").value) || 20;
     $("#tableContainer").innerHTML = '<div class="loading">⏳ 加载中...</div>';
@@ -98,35 +126,85 @@
       renderTable();
       renderPagination();
       $("#totalBadge").textContent = `${data.total} 条`;
+      // 统计
+      renderStats(data.items || []);
     } catch (e) {
       $("#tableContainer").innerHTML = `<div class="empty">⚠️ 加载失败: ${e.message}</div>`;
     }
   }
 
+  // ===== 统计 =====
+  function renderStats(items) {
+    const total = items.length;
+    const ok = items.filter(e => !isFail(e)).length;
+    const fail = total - ok;
+    const auth = items.filter(e => isAuthEvent(e)).length;
+    $("#statsBar").innerHTML = `
+      <span class="stat-chip total">📊 本页 ${total} 条</span>
+      <span class="stat-chip ok">✅ 成功 ${ok}</span>
+      <span class="stat-chip fail">❌ 失败 ${fail}</span>
+      <span class="stat-chip auth">🔐 授权 ${auth}</span>
+    `;
+  }
+
+  function isFail(e) {
+    const r = (e.result || "").toLowerCase();
+    return r.includes("失败") || r.includes("拒绝") || r.includes("错误") || r.includes("无效") || e.event === "auth_fail";
+  }
+  function isAuthEvent(e) {
+    return (e.event && e.event.startsWith("auth_")) || (e.action && e.action.startsWith("auth"));
+  }
+
+  // ===== 渲染表格 =====
   function renderTable() {
     const agentFilter = $("#filterAgent").value;
     const actionFilter = $("#filterAction").value;
+    const search = $("#searchBox").value.trim().toLowerCase();
+
     let filtered = allData;
     if (agentFilter) filtered = filtered.filter(e => e.agent_id === agentFilter);
-    if (actionFilter) filtered = filtered.filter(e => e.action?.startsWith(actionFilter));
+    if (actionFilter === "auth") {
+      filtered = filtered.filter(e => isAuthEvent(e));
+    } else if (actionFilter) {
+      filtered = filtered.filter(e => (e.action || "").startsWith(actionFilter));
+    }
+    if (search) {
+      filtered = filtered.filter(e =>
+        (e.result || "").toLowerCase().includes(search) ||
+        (e.action || "").toLowerCase().includes(search) ||
+        (e.qq || "").includes(search) ||
+        (e.agent_id || "").includes(search)
+      );
+    }
 
     if (!filtered.length) {
       $("#tableContainer").innerHTML = '<div class="empty">📭 没有匹配的日志记录</div>';
+      $("#statsBar").innerHTML = '<span class="stat-chip total">📭 无数据</span>';
       return;
     }
 
     const rows = filtered.map(e => {
       const ts = new Date((e.ts || 0) * 1000).toLocaleString();
-      const isOk = !e.result?.includes("失败") && !e.result?.includes("拒绝") && !e.result?.includes("错误");
-      const tag = isOk ? '<span class="tag tag-ok">OK</span>' : '<span class="tag tag-fail">FAIL</span>';
+      const fail = isFail(e);
+      const auth = isAuthEvent(e);
+      let tag = '<span class="tag tag-ok">OK</span>';
+      if (fail) tag = '<span class="tag tag-fail">FAIL</span>';
+      else if (auth) {
+        const ev = e.event || e.action || "";
+        if (ev.includes("perm") || ev.includes("confirm")) tag = '<span class="tag tag-auth-perm">PERM</span>';
+        else if (ev.includes("revoke") || ev.includes("deny")) tag = '<span class="tag tag-auth-revoke">REV</span>';
+        else if (ev.includes("pending")) tag = '<span class="tag tag-pending">PEND</span>';
+        else tag = '<span class="tag tag-auth">AUTH</span>';
+      }
       const resultShort = (e.result || "").slice(0, 80);
+      const sigIcon = e.sig ? (verifyResult ? (verifyResult.ok_items?.includes(e) ? "✅" : "⚠️") : "🔏") : "";
       return `<tr>
         <td>${ts}</td>
         <td>${e.qq || ""}</td>
         <td>${e.agent_id || ""}</td>
-        <td>${e.action || ""}</td>
+        <td>${e.action || e.event || ""}</td>
         <td>${tag}</td>
-        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(e.result||"").replace(/"/g,'"')}">${resultShort}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(e.result||"").replace(/"/g,'&quot;')}">${sigIcon} ${resultShort}</td>
       </tr>`;
     }).join("");
 
@@ -136,16 +214,49 @@
     </table>`;
   }
 
+  // ===== 分页 =====
   function renderPagination() {
     const el = $("#pagination");
     if (totalPages <= 1) { el.innerHTML = ""; return; }
     let html = `<button class="btn" ${currentPage===1?"disabled":""} onclick="loadPage(${currentPage-1})">◀ 上一页</button>`;
     html += `<span style="color:var(--muted);font-size:0.85rem">第 ${currentPage}/${totalPages} 页</span>`;
     html += `<button class="btn" ${currentPage===totalPages?"disabled":""} onclick="loadPage(${currentPage+1})">下一页 ▶</button>`;
+    // 跳页
+    html += `<span style="color:var(--muted);font-size:0.8rem;margin-left:8px;">跳至</span>`;
+    html += `<input type="number" id="jumpPage" min="1" max="${totalPages}" style="width:60px;padding:4px 8px;background:var(--input);border:1px solid var(--border);border-radius:6px;color:var(--fg);font-size:0.8rem;">`;
+    html += `<button class="btn btn-sm" onclick="doJump()">Go</button>`;
     el.innerHTML = html;
   }
 
-  // 导出
+  window.doJump = function() {
+    const p = parseInt($("#jumpPage").value) || 1;
+    loadPage(Math.min(Math.max(1, p), totalPages));
+  };
+
+  // ===== 校验 =====
+  window.verifyNow = async function() {
+    const badge = $("#integrityBadge");
+    badge.className = "integrity integrity-unknown";
+    badge.textContent = "校验中...";
+    try {
+      const res = await window.AstrBotPluginPage.apiGet("panel/audit/verify");
+      verifyResult = res;
+      if (res.integrity) {
+        badge.className = "integrity integrity-ok";
+        badge.textContent = `✅ 完整 (${res.ok_count} 条, 篡改: ${res.tampered_lines.length})`;
+      } else {
+        badge.className = "integrity integrity-bad";
+        badge.textContent = `⚠️ 发现 ${res.tampered_lines.length} 行被篡改!`;
+      }
+      // 刷新表格以显示签名状态
+      renderTable();
+    } catch(e) {
+      badge.className = "integrity integrity-bad";
+      badge.textContent = `❌ 校验失败: ${e.message}`;
+    }
+  };
+
+  // ===== 导出 =====
   window.exportLogs = async function() {
     try {
       await window.AstrBotPluginPage.download("logs/export", { filename: `winremote_audit_${Date.now()}.jsonl` });
@@ -154,22 +265,39 @@
     }
   };
 
-  // 筛选事件
+  // ===== 事件绑定 =====
   $("#filterAgent").addEventListener("change", () => renderTable());
   $("#filterAction").addEventListener("change", () => renderTable());
+  $("#searchBox").addEventListener("input", () => renderTable());
   $("#pageSize").addEventListener("change", () => loadPage(1));
 
-  // 首次加载（获取总条数 + 第一页）
+  // ===== 首次加载 =====
   try {
     const params = new URLSearchParams({ page: 1, size: parseInt($("#pageSize").value) || 20 });
-    const data = await window.AstrBotPluginPage.apiGet(`logs/list?${params}`);
+    const [data, verifyRes] = await Promise.all([
+      window.AstrBotPluginPage.apiGet(`logs/list?${params}`),
+      window.AstrBotPluginPage.apiGet("panel/audit/verify").catch(()=>({})),
+    ]);
     allData = data.items || [];
     totalPages = Math.max(1, Math.ceil(data.total / (parseInt($("#pageSize").value) || 20)));
     $("#totalBadge").textContent = `${data.total} 条`;
     renderTable();
     renderPagination();
 
-    // 填充 Agent 筛选下拉
+    // 审计完整性
+    const badge = $("#integrityBadge");
+    if (verifyRes.integrity !== undefined) {
+      verifyResult = verifyRes;
+      if (verifyRes.integrity) {
+        badge.className = "integrity integrity-ok";
+        badge.textContent = `✅ 完整 (${verifyRes.ok_count} 条)`;
+      } else {
+        badge.className = "integrity integrity-bad";
+        badge.textContent = `⚠️ ${verifyRes.tampered_lines.length} 行被篡改!`;
+      }
+    }
+
+    // Agent 筛选下拉
     const agents = [...new Set((data.items||[]).map(e => e.agent_id).filter(Boolean))];
     const sel = $("#filterAgent");
     agents.forEach(a => {
