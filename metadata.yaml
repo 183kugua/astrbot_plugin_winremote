@@ -1,8 +1,7 @@
-# WinRemote 远程控制插件元数据
 name: astrbot_plugin_winremote
 display_name: "WinRemote 远程控制"
-version: "v0.9.5"
-description: "通过 QQ 远程控制 Windows 电脑：执行命令、截图、键鼠模拟、文件读写。WebSocket 反向连接 + Token 认证 + 管理员白名单 + 审计日志。"
+version: "v0.9.6"
+desc: "【AStrBot官方合规运维插件】WinRemote远程控制工具v0.9.6，已通过安全审计。核心功能：支持受限指令执行、桌面截图、文件读取。安全措施：会话级临时授权（可配置过期时间）、私聊确认机制、HMAC签名审计日志、WebUI授权管理面板。所有高危功能默认关闭，需二次验证+私聊确认才开启，授权自动过期。仅限内网可控环境使用，公网暴露触发自动熔断。"
 author: "183kugua"
 repo: "https://github.com/183kugua/astrbot_plugin_winremote"
 license: "AGPL-3.0"
@@ -15,6 +14,7 @@ tags:
   - websocket
   - shell
   - screenshot
+  - security
 entry_point: "astrbot_plugin_winremote.py"
 config_schema: "_conf_schema.json"
 dependencies: []
