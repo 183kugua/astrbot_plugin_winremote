@@ -155,14 +155,15 @@ ssh -N -R 6190:localhost:6190 root@你的服务器IP
 
 ### 4. Windows: 安装 Agent
 
-右键 `install_agent.bat` → 以管理员身份运行
+右键 `install_agent.bat` → 以管理员身份运行（在本插件的github仓库里，已经插件作者本人核查）
 - 脚本会交互式询问 Server URL / Token / Agent ID
 - **不再自动下载 NSSM**（安全审查要求）
 - 手动下载 NSSM: https://nssm.cc/download
+-nssm可以将bat文件包装为windows系统服务，关掉命令行窗口也可以运行
 
 ### 5. Windows: 管理服务
 
-右键 `agent_admin.bat` → 以管理员身份运行
+右键 `agent_admin.bat` → 以管理员身份运行（在本插件的github仓库里，已经插件作者本人核查）
 
 | 选项 | 功能 |
 |---|---|
@@ -219,18 +220,6 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 - Agent 用 `cmd /c` 启动，无法交互式输入
 - 二次密码 / 加密校验仅服务端做，Agent 侧不校验
 - 重启插件后所有授权自动失效（安全特性）
-
-## 开发原则合规
-
-- [x] 功能经过测试 (52 个用例全部通过)
-- [x] 包含良好注释和类型注解
-- [x] 持久化数据存 data/ 目录
-- [x] 良好错误处理，单点失败不崩溃插件
-- [x] 使用 ruff 格式化 (ruff check + ruff format)
-- [x] 未使用 requests 库 (纯 WebSocket 异步)
-- [x] 无 exec/eval 动态代码执行
-- [x] 无自动下载第三方文件
-- [x] 审计日志 HMAC 签名防篡改
 
 ## 升级历史
 
