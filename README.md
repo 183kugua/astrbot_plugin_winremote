@@ -41,17 +41,6 @@ QQ - NapCat(本机Win) - AStrBot(服务器)
 - 支持中英文关键词：同意/确认/yes/agree/允许、拒绝/取消/no/deny/禁止
 ```
 
-### 审计日志 HMAC 签名
-
-每条审计记录都附带 HMAC-SHA256 签名，防止篡改：
-
-```bash
-# 校验审计日志完整性
-python auth.py data/winremote_audit.jsonl your-secret-token
-# 输出: {"ok_count": 152, "tampered_lines": [], "integrity": true}
-```
-
-
 ## 部署步骤
 
 ### 1. 服务器: 安装插件
