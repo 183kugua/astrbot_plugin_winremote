@@ -1,4 +1,4 @@
-# WinRemote V0.9.5 - AstrBot Remote Control Windows Plugin
+# WinRemote V0.9.7 - AstrBot Remote Control Windows Plugin
 
 通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。（可跨网络，无需内网穿透）
 
@@ -146,33 +146,91 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 - 二次密码 / 加密校验仅服务端做，Agent 侧不校验
 - 重启插件后所有授权自动失效（安全特性）
 
-## 升级历史
 
-### V0.9.5 (当前)
-- ✨ **新增** `auth.py`：会话级临时授权 + HMAC-SHA256 审计签名
-- ✨ **新增** `confirm.py`：私聊确认等待回复机制
-- ✨ **新增** `auth_ttl_seconds` 配置项（可配置授权有效期）
-- 🔒 删除所有"永久开关"逻辑，改为"默认关闭 + 临时授权 + 自动过期"
-- 🔒 高危操作（PowerShell/写入/键鼠）需私聊确认才授予永久权限
-- 🔒 重启插件后所有授权自动失效
-- 🔒 `install_agent.bat` 改为交互式，删除自动下载逻辑
-- 📝 审计日志增加 HMAC 签名，可用 `verify_audit()` 校验完整性
+## 更新日志
 
-### V0.9.4
-- ✅ 修复 ruff Linter 检测到的所有代码规范问题（0 errors）
-- ✅ 修正 Context 类型注解导入缺失问题
-- ✅ 自动格式化导入顺序，符合 PEP 8 标准
-- ✅ 清理空白行多余字符
-- ✅ Schema JSON 完整性验证通过
+## [0.9.6] - 2026-08-01
 
-### V0.9.3
-- ✅ 修复 `_conf_schema.json` 中 type: "integer" 应改为 "int"
-- ✅ 统一所有配置字段使用 AStrBot 支持的白名单类型
+### Added
+- **私聊确认授权**：高危操作改为机器人私聊管理员发送申请，回复「同意」通过 / 「拒绝」或5分钟不回复则取消
+- **WebUI Dashboard**：授权状态面板 + 一键吊销 + 审计完整性实时检测
+- **WebUI Settings**：授权配置组 + SHA-256 密码哈希生成器 + 授权摘要
+- **WebUI Logs**：授权事件筛选 + 搜索 + HMAC 校验按钮 + 授权事件标签
+- **Widget**：授权状态指示 + 审计完整性实时显示 + 全部吊销/校验按钮
+- **后端 API**：`/panel/auth.json`（授权详情）、`/panel/auth/revoke`（吊销）、`/panel/audit/verify`（HMAC 校验）
+- **测试**：新增 48 个 v0.9.6 专项测试，总测试数 52 → 100，全部通过
 
-### V0.9.0
-- ✨ 根因修复：`_conf_schema.json` 改为 AStrBot 认的扁平结构
-- ✅ 修复 `string indices must be integers` 加载错误
-- ✅ 加 `from __future__ import annotations` 兼容 Python 3.10
-- ✅ 测试 52 个全部通过
-- ✅ 修复 `PasswordGuard` 封禁优先级
-- ✅ 扩大 `INJECTION_CHARS` 覆盖
+### Changed
+- 确认方式：群内确认 → 私聊确认（更安全、不打扰群成员）
+- confirm.py 超时：60 秒 → 300 秒（5 分钟）
+- WebUI 全部页面重构升级
+
+### Security
+- HMAC-SHA256 审计签名：所有日志条目防篡改
+- 审计日志文件权限设为只读（0o444）
+- 非管理员回复私聊确认一律忽略
+- 100% 测试通过 / ruff 零警告 / 安全红线全过
+
+---
+
+## [0.9.5] - 2026-07-31
+
+### Added
+- **AuthManager**（`auth.py`）：会话级临时授权，支持可配置 TTL
+- **confirm.py**：群确认等待回复机制（60 秒超时）
+- **HMAC 审计签名**：日志防篡改 + 独立校验脚本
+
+### Changed
+- 「永久开关」→「会话级临时授权 + 群确认」
+- TTL 三模式：1~1800s 自定义 / 0 永久（需确认）/ >1800s 超长（需确认）
+- 删除所有"永久开启"逻辑
+
+### Security
+- 每次高危操作必须实时审批
+- 授权自动过期，重启后全部失效
+- 二次密码 SHA-256 哈希校验
+
+---
+
+## [0.9.4] - 2026-07-30
+
+### Fixed
+- 恢复 `main.py` 薄壳入口（官方强制要求）
+- Schema 格式：`fields` → `items` 嵌套（官方规范）
+- 类型对齐白名单：`integer`→`int`、`boolean`→`bool`、`array`→`list`
+- 新增 `requirements.txt`（websockets>=11.0,<16.0）
+- `metadata.yaml` 必填字段齐全
+- 版本号全链路统一
+
+### Security
+- 通过 AStrBot 插件商店审核
+
+---
+
+## [0.8.0 ~ 0.9.3] - 2026-07
+
+### Changed (Failed)
+- 入口文件改名、Schema 用非官方 `fields` 键、类型不在白名单
+- 反复提交均被审核驳回
+
+### Lesson Learned
+> 一个字母之差（`items` vs `fields`）卡了 5 个版本。读官方文档要先于写代码。
+
+---
+
+## [0.7.0] - 2026-06
+
+### Added
+- 首个上架版本
+- 受限命令执行（ipconfig/tasklist/dir/ps/ls）
+- 桌面截图
+- 文件读取（白名单目录）
+- 文件写入（需授权）
+- 键鼠模拟（需授权）
+- 进程管理
+- 基础审计日志
+
+### Notes
+- Schema 扁平结构，类型用官方白名单
+- 通过审核，在 AStrBot 插件商店上架
+- License: AGPL-3.0
