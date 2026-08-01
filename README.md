@@ -39,7 +39,6 @@ QQ - NapCat(本机Win) - AStrBot(服务器)
 - 管理员回复"拒绝"或**5分钟不回复** → 自动取消
 - 非管理员回复 → 忽略
 - 支持中英文关键词：同意/确认/yes/agree/允许、拒绝/取消/no/deny/禁止
-```
 
 ## 部署步骤
 
@@ -55,7 +54,6 @@ QQ - NapCat(本机Win) - AStrBot(服务器)
 - `secret_token`: 改为 ≥16 位随机字符串
   ```bash
   python3 -c "import secrets; print(secrets.token_hex(32))"
-  ```
 
 **建议项：**
 - `admin_password`: 设置二次密码（SHA-256 哈希更安全）
