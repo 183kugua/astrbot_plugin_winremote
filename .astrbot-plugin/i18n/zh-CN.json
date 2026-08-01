@@ -59,5 +59,18 @@
       "refresh": "刷新",
       "last_update": "最后更新"
     }
+  },
+  "auth": {
+    "title": "授权管理",
+    "ttl_label": "授权有效期(秒)",
+    "ttl_desc": "高危操作授权有效期。默认300秒(5分钟)；设为0=永久(需私聊确认)；>1800秒也要私聊确认",
+    "password_label": "二次密码(哈希)",
+    "password_desc": "SHA-256 哈希值，用于授权验证",
+    "status_label": "当前授权状态",
+    "revoke_all": "撤销全部授权",
+    "revoke_all_confirm": "确定撤销所有授权吗？",
+    "verify_log": "校验审计日志",
+    "verify_ok": "审计日志完整，未被篡改",
+    "verify_bad": "发现 {count} 条被篡改记录"
   }
 }
