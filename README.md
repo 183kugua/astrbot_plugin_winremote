@@ -73,8 +73,8 @@ ssh -N -R 6190:localhost:6190 root@你的服务器IP
 
 ### 4. Windows: 安装 Agent
 
-打开本插件github仓库：https://github.com/183kugua/astrbot_plugin_winremote ,下载install_agent.bat和agent_admin.bat两个文件
-右键 `install_agent.bat` → 以管理员身份运行（已经插件作者本人核查，无危险）
+- 打开本插件github仓库：https://github.com/183kugua/astrbot_plugin_winremote ,下载install_agent.bat和agent_admin.bat两个文件
+- 右键 `install_agent.bat` → 以管理员身份运行（已经插件作者本人核查，无危险）
 - 脚本会交互式询问 Server URL / Token / Agent ID
 - **不再自动下载 NSSM**（安全审查要求）
 - 手动下载 NSSM: https://nssm.cc/download
