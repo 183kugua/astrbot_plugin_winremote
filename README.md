@@ -80,7 +80,11 @@ ssh -N -R 6190:localhost:6190 root@你的服务器IP
 - 手动下载 NSSM: https://nssm.cc/download
 - nssm可以将bat文件包装为windows系统服务，关掉命令行窗口也可以运行
 - 使用方法见本插件github仓库中的文档：
-1.WinRemote_NSSM_Quick_Start.md （5 分钟上手极简版） /   2.WinRemote_NSSM_Service_Guide.md  （完整教程）
+- 1.WinRemote_NSSM_Quick_Start.md （5 分钟上手极简版）
+- 2.WinRemote_NSSM_Service_Guide.md  （完整教程）
+  
+  
+
 
 ### 5. Windows: 管理服务
 
