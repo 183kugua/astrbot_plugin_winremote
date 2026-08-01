@@ -81,8 +81,15 @@ async def make_server(cfg, tmp_path, ctx=None):
         fake_serve.handler = handler
         return fake
 
-    with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
-        await srv.start()
+    # 如果 websockets 未安装（测试环境常见），mock 整个模块
+    if plugin.websockets is None:
+        fake_ws_module = MagicMock()
+        fake_ws_module.serve = fake_serve
+        with patch.object(plugin, "websockets", fake_ws_module):
+            await srv.start()
+    else:
+        with patch.object(plugin.websockets, "serve", side_effect=fake_serve):
+            await srv.start()
 
     return srv, fake_serve
 
@@ -273,6 +280,8 @@ class TestPanelData:
         ctx = MagicMock()
         audit = plugin.AuditLogger(tmp_path / "pd.jsonl")
         srv = plugin.WinRemoteServer(ctx, cfg, audit)
+        # 模拟 on_load: 启动 server 使 _running = True
+        await srv.start()
 
         agent = plugin.AgentConnection(ws=MagicMock(), agent_id="panel-agent")
         agent.busy = True
