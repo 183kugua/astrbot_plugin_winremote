@@ -1,28 +1,37 @@
 """
-astrbot_plugin_winremote.py — AStrBot V0.9.4 唯一真源
+astrbot_plugin_winremote.py — AStrBot V0.9.6 唯一真源
 ======================================================
 AStrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
   main.py  或  astrbot_plugin_winremote.py
 本文件满足两种命名约定，main.py 作为薄壳入口。
 
+V0.9.6 核心改造：
+- WebUI 全面升级：Dashboard 增加授权状态面板 + 一键吊销
+- Settings 页面新增授权配置组 + SHA-256 密码哈希生成器
+- Logs 页面增加 HMAC 完整性校验按钮 + 授权事件标签
+- Widget 增加授权状态指示 + 审计完整性实时显示
+- 后端新增 /panel/auth.json、/panel/auth/revoke、/panel/audit/verify 接口
+
+V0.9.5 核心改造：
+- 集成 AuthManager（auth.py）：会话级临时授权，替代永久开关
+- 新增私聊确认机制（confirm.py）：高危操作需管理员实时确认
+- 审计日志加 HMAC-SHA256 签名（防篡改）
+- 删除所有"永久开启"逻辑，改为"默认关闭 + 临时授权 + 自动过期"
+- auth_ttl_seconds 可配置（默认300秒，0=永久但需私聊确认）
+
 V0.9.4 过审版关键修复：
 - _conf_schema.json 完全重写，使用 items 替代 fields
 - 所有 type 符合白名单（int/bool/string/list/object）
 - __init__签名修正为 def __init__(self, context: Context, config: AstrBotConfig)
-- 消除所有 self.context.config 引用，统一用 self.config.get()
-
-历史修复（已稳定）：
-- V0.9.1：消除所有 context.config 引用。
-- V0.9.0：type 白名单（int/bool/list 等，无 array/integer/arrays）。
-- V0.8.x：扁平 schema 结构，解决 string indices 错误。
 
 架构（测试友好，职责分离）：
-- WinRemoteServer     : WebSocket 服务端 + Agent 生命周期（可独立构造）
-- AgentManager        : Agent 注册/查找/清理（被 Server 持有）
-- AgentConnection    : 单个 Agent 的数据模型
-- PasswordGuard      : 二次密码 + 封禁
-- AuditLogger        : 审计日志读写
-- WinRemotePlugin    : AStrBot 插件壳，持有 Server
+- AuthManager        : 会话级授权 + HMAC 审计（auth.py）
+- WinRemoteServer   : WebSocket 服务端 + Agent 生命周期
+- AgentManager      : Agent 注册/查找/清理
+- AgentConnection   : 单个 Agent 的数据模型
+- PasswordGuard     : 二次密码 + 封禁
+- AuditLogger       : 传统审计日志（兼容旧数据）
+- WinRemotePlugin   : AStrBot 插件壳，持有 Server + AuthManager
 - 全局函数 get_config / validate_command / validate_path
 """
 
@@ -40,6 +49,13 @@ import time
 import uuid
 from collections import deque
 from typing import Any
+
+# ============================================================
+# 本地模块（v0.9.5：会话级授权 + 私聊确认）
+# 必须在最顶部，避免 E402
+# ============================================================
+from auth import AuthManager
+from confirm import request_private_confirm
 
 # ============================================================
 # AStrBot _conf_schema.json 类型白名单（唯一真源）
@@ -76,12 +92,13 @@ except ImportError:  # pragma: no cover
     _HAS_WS = False
 
 # ============================================================
-# AstrBot API（带 fallback，让测试环境能 import）
+# AStrBot API（带 fallback，让测试环境能 import）
 # ============================================================
 try:
     from astrbot.api import AstrBotConfig
     from astrbot.api import logger as ab_logger
-    from astrbot.api.star import Context
+    from astrbot.api.event import filter as astr_filter
+    from astrbot.api.star import Context, Star
     from astrbot.core.star.star_handler import (
         CommandType,
         EventType,
@@ -95,6 +112,7 @@ except ImportError:  # pragma: no cover
     AstrBotConfig = dict
     ab_logger = None
     Context = Any
+    Star = object
 
     def register(*a, **kw):
         def deco(cls):
@@ -108,6 +126,19 @@ except ImportError:  # pragma: no cover
 
         return _wrap
 
+    # filter fallback：原样返回函数，且模拟 .event_message_type 等属性
+    class _FilterFallback:
+        def __call__(self, *a, **kw):
+            def deco(func):
+                return func
+            return deco
+
+        def __getattr__(self, name):
+            # 返回自身，支持链式调用如 filter.event_message_type(...)
+            return self
+
+    astr_filter = _FilterFallback()
+
     StarTools = None
 
     class _EnumFallback:
@@ -119,12 +150,11 @@ except ImportError:  # pragma: no cover
     CommandType = _EnumFallback()
     _HAS_ASTRBOT = False
 
-
 # ============================================================
 # 常量
 # ============================================================
 PLUGIN_NAME = "astrbot_plugin_winremote"
-VERSION = "0.9.3"
+VERSION = "0.9.6"
 
 DANGEROUS_KEYWORDS = [
     "rm ",
@@ -301,11 +331,17 @@ class AuditLogger:
         max_entries: int = AUDIT_MAX,
         rotation_mb: int = 10,
     ):
-        from astrbot.core.star.star_tools import get_data_dir
-
+        # 统一转字符串（兼容 Path 对象传入）
+        if path is not None:
+            path = str(path)
         # 默认路径：plugin_name/data/audit.jsonl
         if path is None or not path.startswith("/"):
-            plugin_data_dir = get_data_dir("astrbot_plugin_winremote")
+            try:
+                from astrbot.core.star.star_tools import get_data_dir
+                plugin_data_dir = get_data_dir("astrbot_plugin_winremote")
+            except (ImportError, ModuleNotFoundError):
+                # 测试环境 fallback
+                plugin_data_dir = os.path.join(os.getcwd(), "data")
             os.makedirs(plugin_data_dir, exist_ok=True)
             self.path = os.path.join(plugin_data_dir, "winremote_audit.jsonl")
         else:
@@ -319,8 +355,11 @@ class AuditLogger:
         p = self.path
         # 已经是完整路径（get_data_dir 返回绝对路径）
         if not os.path.isabs(p):
-            from astrbot.core.star.star_tools import get_data_dir
-            data_dir = get_data_dir("astrbot_plugin_winremote")
+            try:
+                from astrbot.core.star.star_tools import get_data_dir
+                data_dir = get_data_dir("astrbot_plugin_winremote")
+            except (ImportError, ModuleNotFoundError):
+                data_dir = os.path.join(os.getcwd(), "data")
             p = os.path.join(data_dir, p.lstrip("/"))
         os.makedirs(os.path.dirname(p) or ".", exist_ok=True)
         return p
@@ -759,26 +798,38 @@ class WinRemoteServer:
     version=VERSION,
     repo="https://github.com/183kugua/astrbot_plugin_winremote",
 )
-class WinRemotePlugin:
-    """AstrBot 插件壳：持有 WinRemoteServer"""
+class WinRemotePlugin(Star):
+    """AstrBot 插件壳：持有 WinRemoteServer + AuthManager"""
 
     def __init__(self, context: Context, config: AstrBotConfig):
 
         super().__init__(context)
         self.context = context
         self.config = config
-        # 配置由 AstrBot 注入到 config 参数
+        # 配置由 AStrBot 注入到 config 参数
+        cfg_dict = self.config.get("_config", {})
         self.server = WinRemoteServer(
             context=context,
-            config=self.config.get("_config", {}),
+            config=cfg_dict,
         )
         # 快捷引用
         self.agents = self.server.agents
         self.audit = self.server.audit
         self.pwd_guard = self.server.pwd_guard
         self.cfg = self.server.cfg
-        logger.info(f"WinRemote v{VERSION} 初始化完成")
 
+        # ── v0.9.5：初始化会话级授权管理器 ──
+        secret_token = self._cfg_str("secret_token", "change-me")
+        ttl = self._cfg_int("auth_ttl_seconds", 300, 0, 3600)
+        audit_path = getattr(self.audit, "path", None) or "data/winremote_audit.jsonl"
+        self.auth_mgr = AuthManager(
+            secret_token=secret_token,
+            ttl=ttl,
+            audit_path=audit_path,
+        )
+        self._auth_ttl = ttl
+
+        logger.info(f"WinRemote v{VERSION} 初始化完成（TTL={ttl}s）")
     # -- 配置读取辅助 --
     def _cfg(self, key: str, default: Any = None) -> Any:
         return self.cfg.get(key, default)
@@ -878,6 +929,57 @@ class WinRemotePlugin:
         if not agent and sub not in ("agents", "审计"):
             await handler.send("❌ 没有可用的 Agent，请确认 Windows 端已连接")
             return
+
+        # ── v0.9.5：会话级授权检查 ──
+        _auth_op_map = {
+            "shell": "shell",
+            "powershell": "powershell",
+            "screenshot": "screenshot",
+            "keypress": "keypress",
+            "mouse": "mouse",
+            "open": "open",
+            "readfile": "readfile",
+            "write": "write",
+        }
+        # Map command aliases to auth ops
+        _alias_map = {"截图": "screenshot", "按键": "keypress", "鼠标": "mouse", "打开": "open", "读文件": "readfile"}
+        auth_op = _alias_map.get(sub, _auth_op_map.get(sub))
+        if auth_op is not None and sub not in ("状态", "agents", "审计"):
+            if not self.auth_mgr.check(auth_op):
+                import hashlib
+                admin_pwd_hash = self._cfg_str("admin_password_hash", "")
+                if not admin_pwd_hash:
+                    pwd_plain = self._cfg_str("admin_password", "")
+                    admin_pwd_hash = hashlib.sha256(pwd_plain.encode()).hexdigest()
+                result = self.auth_mgr.request(auth_op, pwd or "", admin_pwd_hash)
+                if result["status"] == "wrong_pwd":
+                    await handler.send("❌ 二次密码错误，授权失败")
+                    return
+                if result["status"] == "need_confirm":
+                    # 向管理员私聊发送授权申请
+                    admin_list = self._cfg_list("admin_qq", [])
+                    confirmed = await request_private_confirm(
+                        self.context, event, auth_op, self._auth_ttl,
+                        admin_list, plugin_self=self,
+                    )
+                    if confirmed:
+                        self.auth_mgr.confirm(auth_op, str(user))
+                        ttl_d = "永久" if self._auth_ttl == 0 else f"{self._auth_ttl}秒"
+                        await handler.send(f"✅ {auth_op} 授权通过（{ttl_d}）")
+                    else:
+                        self.auth_mgr.deny(auth_op, str(user))
+                        await handler.send(f"❌ {auth_op} 授权被拒绝或超时")
+                        return
+                elif result["status"] == "ok":
+                    ttl_d = "永久" if result.get("perm") else f"{result.get('ttl')}秒"
+                    await handler.send(f"✅ {auth_op} 授权成功（{ttl_d}）")
+                else:
+                    await handler.send(f"❌ 授权失败: {result.get('status')}")
+                    return
+            remaining = self.auth_mgr.ttl_remaining(auth_op)
+            ttl_info = f"TTL={remaining}s" if remaining > 0 else "permanent"
+            logger.info(f"[Auth] {user} -> {auth_op} ({ttl_info})")
+
 
         # 管理员
         admin_qq = self._cfg_list("admin_qq", [])
@@ -1177,15 +1279,50 @@ class WinRemotePlugin:
         }
 
     async def api_panel_widget(self) -> dict:
+        """v0.9.6 增强版：返回 Agent + 授权状态 + 审计完整性"""
         agents = list(self.server.agents._agents.values())
         alive = sum(1 for a in agents if a.is_alive())
         busy = sum(1 for a in agents if a.busy)
+
+        # 授权状态
+        granted_info = []
+        if self.auth_mgr is not None:
+            for op, exp in self.auth_mgr.auth.items():
+                remaining = -1 if exp == 0 else max(0, int(exp - time.time()))
+                granted_info.append({
+                    "op": op,
+                    "permanent": (exp == 0),
+                    "remaining": remaining,
+                    "ttl_desc": "永久" if exp == 0 else f"{remaining}s",
+                })
+        pending_count = len(getattr(self.auth_mgr, "pending", {}))
+
+        # 审计完整性（轻量校验）
+        audit_path = getattr(self.audit, "path", None) or "data/winremote_audit.jsonl"
+        integrity = None
+        if self.auth_mgr is not None and audit_path:
+            try:
+                result = self.auth_mgr.verify_audit(audit_path, self.auth_mgr.key)
+                integrity = result.get("integrity", None)
+            except Exception:
+                integrity = None
+
         return {
             "total": len(agents),
             "alive": alive,
             "busy": busy,
             "audit_count": len(self.audit._buf),
             "version": VERSION,
+            "auth": {
+                "granted": granted_info,
+                "pending": pending_count,
+                "ttl_default": getattr(self, "_auth_ttl", 300),
+            },
+            "audit": {
+                "count": len(self.audit._buf),
+                "integrity": integrity,
+                "path": audit_path,
+            },
         }
 
     # -- 生命周期 --
@@ -1194,6 +1331,8 @@ class WinRemotePlugin:
         await self.start()
 
     async def on_unload(self) -> None:
+        # v0.9.5：卸载时撤销所有授权
+        self.auth_mgr.revoke_all()
         await self.stop()
 
     async def on_config_changed(self, old_config, new_config) -> None:
@@ -1204,6 +1343,29 @@ class WinRemotePlugin:
             max_attempts=self._cfg_int("password_max_attempts", 5, 1, 50),
             ban_duration=self._cfg_int("password_ban_duration", 300, 30, 86400),
         )
+        # v0.9.5：重建 AuthManager 以应用新 TTL
+        secret_token = self._cfg_str("secret_token", "change-me")
+        ttl = self._cfg_int("auth_ttl_seconds", 300, 0, 3600)
+        audit_path = getattr(self.audit, "path", None) or "data/winremote_audit.jsonl"
+        self.auth_mgr = AuthManager(
+            secret_token=secret_token,
+            ttl=ttl,
+            audit_path=audit_path,
+        )
+        self._auth_ttl = ttl
+
+    # ── v0.9.5：私聊授权确认回复监听 ──
+    @astr_filter.event_message_type(EventType.PRIVATE_MESSAGE)
+    async def on_private_message(self, event):
+        """
+        监听私聊消息，处理管理员对授权申请的「同意/拒绝」回复。
+        非授权确认消息不做任何处理（返回，让其他插件/LLM 继续处理）。
+        """
+        from confirm import handle_private_reply
+        handled = await handle_private_reply(self.context, event)
+        if handled:
+            # 已处理授权确认 → 停止事件传播
+            event.stop_event()
 
 
 # ============================================================
@@ -1216,6 +1378,7 @@ __all__ = [
     "AgentConnection",
     "PasswordGuard",
     "AuditLogger",
+    "AuthManager",
     "VERSION",
     "PLUGIN_NAME",
     "DANGEROUS_KEYWORDS",
@@ -1229,3 +1392,18 @@ __all__ = [
 ]
 
 __version__ = VERSION
+
+# ============================================================
+# v0.9.6：注册 webui_panel 增强路由
+# ============================================================
+try:
+    from webui_panel import register_web_apis as _register_panel
+    if _register_panel is not None:
+        try:
+            from astrbot.api.star import context as _ctx
+            if _ctx is not None:
+                _register_panel(_ctx)
+        except Exception:
+            pass
+except Exception:
+    pass
