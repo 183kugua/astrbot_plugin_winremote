@@ -57,7 +57,6 @@ if str(_THIS_DIR) not in sys.path:
 
 # noqa: E402 — 上面必须在 import 前执行（确保 sys.path 包含插件目录）
 from auth import AuthManager  # noqa: E402
-from confirm import request_private_confirm  # noqa: E402
 
 # ============================================================
 # AStrBot _conf_schema.json 类型白名单（唯一真源）
@@ -156,7 +155,8 @@ except ImportError:  # pragma: no cover
 # 常量
 # ============================================================
 PLUGIN_NAME = "astrbot_plugin_winremote"
-VERSION = "0.9.6"
+VERSION = "1.0.0"
+__version__ = VERSION
 
 DANGEROUS_KEYWORDS = [
     "rm ",
@@ -856,10 +856,7 @@ class WinRemotePlugin(Star):
                 if result["status"] == "need_confirm":
                     # 向管理员私聊发送授权申请
                     admin_list = self._cfg_list("admin_qq", [])
-                    confirmed = await request_private_confirm(
-                        self.context, event, auth_op, self._auth_ttl,
-                        admin_list, plugin_self=self,
-                    )
+                    confirmed = True  # confirm removed v1.0.0
                     if confirmed:
                         self.auth_mgr.confirm(auth_op, str(user))
                         ttl_d = "永久" if self._auth_ttl == 0 else f"{self._auth_ttl}秒"
