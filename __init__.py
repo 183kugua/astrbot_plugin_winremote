@@ -1,14 +1,17 @@
 """
-__init__.py — 薄壳（V0.9.6）
-==========================
+__init__.py — 薄壳（V0.9.8）
+==================================
 唯一职责：让 `from astrbot_plugin_winremote import ...` 可用。
-真实逻辑全部在 astrbot_plugin_winremote.py（与目录同名，AstrBot 入口）。
+真实逻辑全部在 astrbot_plugin_winremote.py（与目录同名，AStrBot 入口）。
 
-实现方式：直接 exec 主模块源码到当前命名空间。
-这样做的好处：
-1. 没有循环 import（不触发父包的 __getattr__）
-2. 所有公共符号都在 __all__ 里
-3. ruff / IDE 都能正确识别
+V0.9.8 变更：
+- LLM Tool 注册（add_llm_tools，v4.5.7+ 推荐方式）
+- Skill 技能包自动加载（skills/winremote-remote-control/）
+- /win --llm 降级通道（LLM 不可用时退回传统指令）
+- on_llm_response 钩子（回复中追加授权状态）
+
+实现方式：标准 import 导入主模块符号到当前命名空间。
+这样既避免了 exec() 带来的安全审计风险，又保持了完整的公共 API 导出。
 """
 
 __is_shell__ = True
@@ -49,25 +52,77 @@ __all__ = [
     "logger",
 ]
 
-# 直接读取并 exec 主模块源码
-# 这样做完全避免了 import 循环：
-# - 不触发父包 __getattr__
-# - 不触发 astrbot_plugin_winremote.py 里的 `from astrbot_plugin_winremote import`
-# - 主模块里的 `from astrbot_plugin_winremote import (...)` 会找到已经部分初始化的本模块
-import os
+# 正常导入主模块，不使用 exec
+# 主模块 (astrbot_plugin_winremote.py) 内部不依赖包级别导入，
+# 子模块 (tool_handlers.py) 中的 from astrbot_plugin_winremote import ...
+# 使用延迟导入，不会造成循环依赖
+from .astrbot_plugin_winremote import (
+    __version__,
+    VERSION,
+    PLUGIN_NAME,
+    DANGEROUS_KEYWORDS,
+    INJECTION_CHARS,
+    MAX_OUTPUT_BYTES,
+    STREAM_CHUNK_SIZE,
+    STREAM_INTERVAL,
+    HEARTBEAT_INTERVAL,
+    HEARTBEAT_TIMEOUT,
+    AUDIT_MAX,
+    AgentConnection,
+    AgentManager,
+    PasswordGuard,
+    AuditLogger,
+    WinRemoteServer,
+    WinRemotePlugin,
+    get_config,
+    validate_command,
+    validate_path,
+)
 
-_THIS_DIR = os.path.dirname(__file__)
-_MAIN_PATH = os.path.join(_THIS_DIR, "astrbot_plugin_winremote.py")
+# websockets 条件导入
+try:
+    import websockets
+    from websockets.exceptions import ConnectionClosed
+    _HAS_WS = True
+except ImportError:
+    websockets = None  # type: ignore[assignment]
+    ConnectionClosed = None  # type: ignore[assignment]
+    _HAS_WS = False
 
-with open(_MAIN_PATH, encoding="utf-8") as _f:
-    _MAIN_SOURCE = _f.read()
+# AStrBot 条件导入
+try:
+    from astrbot.api.all import (
+        StarTools,
+        StarHandlerMetadata,
+        StarHandlerType,
+        EventType,
+        AstrBotConfig,
+    )
+    from astrbot.api.message_components import CommandType
+    import astrbot.api.logger as logger
 
-# 先预置 __version__ 别名，让主模块的 `from astrbot_plugin_winremote import __version__`
-# 能找到（虽然主模块实际用的是 VERSION，但 __all__ 里暴露了 __version__）
-# 执行主模块源码，命名空间就是当前模块的 globals()
-# 注意：这是 AStrBot 官方要求的薄壳导入模式（非动态代码执行）
-# 所有执行内容均来自同目录下的 astrbot_plugin_winremote.py 静态源码
-exec(compile(_MAIN_SOURCE, _MAIN_PATH, "exec"), globals())
+    _HAS_ASTRBOT = True
+except ImportError:
+    StarTools = None  # type: ignore[assignment]
+    StarHandlerMetadata = None  # type: ignore[assignment]
+    StarHandlerType = None  # type: ignore[assignment]
+    EventType = None  # type: ignore[assignment]
+    CommandType = None  # type: ignore[assignment]
+    AstrBotConfig = None  # type: ignore[assignment]
 
-# 主模块执行完后，创建 __version__ 别名
-__version__ = VERSION  # noqa: F821 (VERSION 由 exec 注入)
+    import logging
+    logger = logging.getLogger("astrbot_plugin_winremote")
+
+    _HAS_ASTRBOT = False
+
+
+# register 函数（AStrBot 入口）
+def register(tools: Any = None) -> Any | None:
+    """
+    注册函数 — AStrBot 入口。
+    如果主模块加载成功，调用其 register()。
+    """
+    try:
+        return WinRemotePlugin(tools=tools)  # noqa: F821 (已由上方 import 注入)
+    except Exception:
+        return None
