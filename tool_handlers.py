@@ -1,5 +1,5 @@
 """
-tool_handlers.py — WinRemote v0.9.7 LLM Tool 执行函数
+tool_handlers.py — WinRemote v0.9.8 LLM Tool 执行函数
 ======================================================
 每个 handler 对应 tools.py 中定义的一个 Tool。
 AStrBot Agent 调用 Tool 时，实际执行这里的函数。

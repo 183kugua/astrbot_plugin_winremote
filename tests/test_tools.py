@@ -1,5 +1,5 @@
 """
-test_tools.py — WinRemote v0.9.7 LLM Tool 测试
+test_tools.py — WinRemote v0.9.8 LLM Tool 测试
 ============================================
 测试内容：
 1. Tool 定义完整性（7 个 Tool 的 name/description/parameters）

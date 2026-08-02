@@ -1,5 +1,5 @@
 """
-tools.py — WinRemote v0.9.7 LLM Tool 定义
+tools.py — WinRemote v0.9.8 LLM Tool 定义
 ==========================================
 使用 @dataclass 方式定义 Tool（AStrBot v4.5.7+ 推荐）。
 插件初始化时通过 context.add_llm_tools(ALL_TOOLS) 注册。
