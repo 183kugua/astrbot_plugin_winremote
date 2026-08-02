@@ -1,0 +1,38 @@
+{
+  "system_prompt_addition": "",
+  "user_prompt_templates": {
+    "check_status": "帮我看看远程电脑的状态",
+    "check_ip": "帮我看下电脑的 IP 地址",
+    "check_processes": "帮我看下电脑正在跑什么程序",
+    "screenshot": "帮我截个图看看电脑屏幕",
+    "open_app": "帮我在电脑上打开 {app}",
+    "read_log": "帮我读一下电脑上的 {filepath} 文件",
+    "run_command": "帮我在电脑上执行 {command}"
+  },
+  "examples": [
+    {
+      "user": "帮我看看电脑的IP地址",
+      "thought": "用户想看IP，应该用 win_shell 执行 ipconfig /all",
+      "action": "调用 win_shell，command='ipconfig /all'",
+      "response": "远程电脑的IP信息如下：\n- IPv4: 192.168.1.100\n- 子网掩码: 255.255.255.0\n- 网关: 192.168.1.1\n- DNS: 8.8.8.8"
+    },
+    {
+      "user": "帮我截个图",
+      "thought": "用户要截图，调用 win_screenshot 即可",
+      "action": "调用 win_screenshot，format='JPEG', quality=75",
+      "response": "已截图，当前桌面显示浏览器窗口和文件管理器处于打开状态。"
+    },
+    {
+      "user": "帮我打开记事本",
+      "thought": "用户要打开程序，用 win_open 传入 notepad",
+      "action": "调用 win_open，target='notepad'",
+      "response": "已打开记事本，截图确认程序已启动。"
+    },
+    {
+      "user": "电脑上现在跑着什么？",
+      "thought": "用户想看进程列表，用 win_shell 执行 tasklist，然后提炼关键信息",
+      "action": "调用 win_shell，command='tasklist'",
+      "response": "当前运行的程序（按内存排序前5）：\n1. chrome.exe - 450MB\n2. code.exe - 320MB\n3. python.exe - 180MB\n4. explorer.exe - 95MB\n5. notepad.exe - 12MB"
+    }
+  ]
+}

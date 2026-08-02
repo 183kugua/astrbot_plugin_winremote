@@ -129,6 +129,53 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 > 启用二次密码后，每条指令追加 `--pwd xxx`。
 > V0.9.5 起，高危操作还需会话授权（自动弹出私聊确认）。
 
+## 🤖 V0.9.8 新增：Skill 与 LLM 支持
+
+### **Skill 自然语言调用**
+V0.9.8 起，WinRemote 支持通过 **AstrBot Skill 系统** 用自然语言调用远程控制功能喵～
+
+**使用方式：**
+```
+# 直接对机器人说自然语言
+"帮我看看 Windows 主机上有什么进程在运行"
+"截取一张远程桌面的图片给我"
+"在远程主机上打开计算器"
+```
+
+**Skill 会自动：**
+1. ✅ 理解主人的自然语言意图
+2. ✅ 调用对应的 WinRemote 工具（shell/截图/按键等）
+3. ✅ 返回执行结果给主人
+
+### **LLM 工具集成（Function Calling）**
+WinRemote 提供标准工具定义（`tools.json`），支持 LLM 函数调用喵～
+
+**可用工具：**
+| 工具名 | 功能 | LLM 调用示例 |
+|--------|------|-------------|
+| `execute_shell` | 执行 Shell 命令 | `execute_shell({"cmd": "ipconfig"})` |
+| `execute_powershell` | 执行 PowerShell | `execute_powershell({"cmd": "Get-Process"})` |
+| `take_screenshot` | 截取桌面 | `take_screenshot({})` |
+| `simulate_keys` | 模拟按键 | `simulate_keys({"keys": "ctrl+alt+del"})` |
+| `simulate_mouse` | 模拟鼠标 | `simulate_mouse({"x": 500, "y": 300, "action": "click"})` |
+| `open_target` | 打开程序/文件 | `open_target({"target": "calc"})` |
+| `read_file` | 读取文件 | `read_file({"path": "C:\\Temp\	est.txt"})` |
+
+**配置方式：**
+在 AstrBot 配置中启用 WinRemote Skill：
+```yaml
+skills:
+  - winremote-remote-control  # 启用远程控制 Skill
+```
+
+### **优势**
+- ✅ **无需记指令**：直接用自然语言描述需求
+- ✅ **智能理解**：LLM 自动解析意图并调用正确工具
+- ✅ **安全审计**：所有 Skill 调用同样经过授权和审计机制
+- ✅ **跨平台兼容**：Skill 定义符合 AstrBot 官方规范
+
+---
+
 ## 安全建议
 
 1. **必做 SSH 隧道**: `ssh -N -R 6190:localhost:6190 root@服务器IP`
@@ -149,6 +196,7 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 
 ## 更新日志
 
+<<<<<<< HEAD
 ## [0.9.7] - 2026-08-01
 
 ### Fixed
@@ -159,6 +207,55 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 ### Security
 - 100% 测试通过 / ruff 零警告 / 安全红线全过
 - ✅ 通过 AStrBot 官方审核（VirusTotal 0/65; Claude Code Agent 通过）
+=======
+## [0.9.8] - 2026-08-02
+
+### Added
+- **配置 Schema 全面升级**：对齐 AstrBot 官方最新规范，提升配置可读性与安全性
+- **详细配置说明**：每个配置项均附带详细说明，降低新手配置门槛
+- **合规性增强**：通过最新安全审计标准，确保插件持续上架
+
+### Changed
+- **Schema 格式优化**：进一步完善 `items` 嵌套结构，确保 100% 符合官方校验
+- **配置项分类**：将配置按功能模块分组（基础配置、安全配置、授权配置、高级配置）
+- **默认值优化**：根据实际使用场景调整默认值，开箱即用更友好
+
+### Fixed
+- 修复部分配置项说明不够详细的问题
+- 修复版本号全链路对齐问题
+- 修复文档与代码版本不一致问题
+
+### Security
+- 保持 HMAC-SHA256 审计签名机制
+- 保持私聊确认授权机制
+- 保持路径白名单严格模式
+- 通过 AstrBot 插件商店安全审核
+
+---
+
+## [0.9.7] - 2026-08-01
+
+### Added
+- **WebUI 全面重构**：全新 Dashboard/Settings/Logs 三大核心页面
+- **授权状态面板**：实时显示当前授权状态、剩余时间、HMAC 校验结果
+- **一键吊销功能**：支持单个/全部吊销授权，即时生效
+- **审计完整性检测**：实时检测日志是否被篡改，异常立即告警
+- **授权事件筛选**：支持按 Agent ID、事件类型、时间范围筛选日志
+- **搜索功能**：支持关键词搜索审计日志
+- **Widget 组件**：快速查看授权状态、审计完整性、一键操作按钮
+- **后端 API**：`/panel/auth.json`、`/panel/auth/revoke`、`/panel/audit/verify`
+
+### Changed
+- WebUI 全部页面重构升级，UI/UX 全面优化
+- 确认方式：群内确认 → 私聊确认（更安全、不打扰群成员）
+- confirm.py 超时：60 秒 → 300 秒（5 分钟）
+
+### Security
+- HMAC-SHA256 审计签名：所有日志条目防篡改
+- 审计日志文件权限设为只读（0o444）
+- 非管理员回复私聊确认一律忽略
+- 100% 测试通过 / ruff 零警告 / 安全红线全过
+>>>>>>> 2cfd086 (📝 更新 v0.9.8 更新日志 + 补充 v0.9.7 记录)
 
 ---
 
