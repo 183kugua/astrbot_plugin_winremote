@@ -6,7 +6,6 @@ v0.9.5：auth_ttl_seconds 可配置，替代永久开关
 - 所有高危操作必须会话级临时授权
 - 授权自动过期（默认5分钟，可配置0=永久但需私聊确认）
 - 审计日志每条带 HMAC-SHA256 签名
-- 提供独立校验脚本 verify_audit()
 """
 import hashlib
 import hmac
@@ -19,9 +18,9 @@ from pathlib import Path
 DEFAULT_TTL = 300           # 默认5分钟
 MAX_TTL = 3600              # 最大1小时
 HIGH_TTL_THRESHOLD = 1800   # >30分钟需私聊确认
-LOG_FILE_DEFAULT = "data/winremote_audit.jsonl"
+LOG_FILE_DEFAULT = "data/winremote_auth_log.jsonl"
 LOG_PERMS = 0o444           # 只读权限
-SECRET_DERIVE_INFO = b"winremote-audit-v1"
+SECRET_DERIVE_INFO = b"winremote-auth-v1"
 PERM_TAG = "[PERM]"
 
 # 需要私聊确认的操作类型
@@ -65,13 +64,13 @@ class AuthManager:
         self,
         secret_token: str,
         ttl: int = DEFAULT_TTL,
-        audit_path: str = LOG_FILE_DEFAULT,
+        log_path: str = LOG_FILE_DEFAULT,
     ):
         self.key = _derive_key(secret_token)
         self.ttl = self._clamp_ttl(ttl)
         self.auth: dict[str, float] = {}       # op → expire_timestamp (0=永久)
         self.pending: dict[str, dict] = {}      # op → {expire_at, ttl}
-        self.audit_path = audit_path
+        self.log_path = log_path
         self._ensure_log()
 
     # ── 内部 ──
@@ -85,18 +84,18 @@ class AuthManager:
 
     def _ensure_log(self):
         """确保日志文件存在且设为只读"""
-        Path(self.audit_path).parent.mkdir(parents=True, exist_ok=True)
-        if not Path(self.audit_path).exists():
-            Path(self.audit_path).touch()
+        Path(self.log_path).parent.mkdir(parents=True, exist_ok=True)
+        if not Path(self.log_path).exists():
+            Path(self.log_path).touch()
         try:
-            os.chmod(self.audit_path, LOG_PERMS)
+            os.chmod(self.log_path, LOG_PERMS)
         except OSError:
             pass  # 某些环境不支持 chmod
 
     def _write_log(self, entry: dict):
         """写入一条审计记录（自动附加 HMAC 签名）"""
         entry["sig"] = _sign(entry, self.key)
-        with open(self.audit_path, "a", encoding="utf-8") as f:
+        with open(self.log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def _needs_confirm(self, op: str) -> bool:
@@ -257,41 +256,10 @@ class AuthManager:
 
 # ─── 审计校验（独立脚本用） ────────────────────────────────
 
-def verify_audit(log_path: str, secret_token: str) -> dict:
-    """
-    校验审计日志完整性。
-    返回 {"ok_count": N, "tampered_lines": [...], "integrity": bool}
-    """
-    key = _derive_key(secret_token)
-    ok = 0
-    bad = []
-    with open(log_path, encoding="utf-8") as f:
-        for i, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-                sig = entry.pop("sig", None)
-                if sig is None or not hmac.compare_digest(sig, _sign(entry, key)):
-                    bad.append(i)
-                else:
-                    ok += 1
-            except json.JSONDecodeError:
-                bad.append(i)
-    return {
-        "ok_count": ok,
-        "tampered_lines": bad,
-        "integrity": len(bad) == 0,
-    }
-
-
-# ─── CLI 入口 ──────────────────────────────────────────────
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 3:
         print("用法: python auth.py <log_path> <secret_token>")
         sys.exit(1)
-    result = verify_audit(sys.argv[1], sys.argv[2])
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    

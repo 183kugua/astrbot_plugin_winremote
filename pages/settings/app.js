@@ -9,7 +9,6 @@ const GROUPS = [
   { key: "commands", title: "④ 指令白/黑名单", desc: "控制哪些命令可以被执行。建议开启严格白名单模式。" },
   { key: "files", title: "⑤ 文件读写", desc: "限制 Agent 可读写的文件路径范围。" },
   { key: "output", title: "⑥ 输出与截图", desc: "控制命令输出截断、流式分块以及截图格式与质量。" },
-  { key: "audit", title: "⑦ 审计日志", desc: "记录所有 /win 指令的触发者、目标 Agent、动作与结果。" },
   { key: "security_warnings", title: "⑧ 安全警告", desc: "请务必阅读以下安全自检提示。", readonly: true },
 ];
 
@@ -28,8 +27,6 @@ const FIELD_TYPES = {
   screenshot_format: "select", screenshot_quality: "number",
   max_output_bytes: "number", stream_chunk_size: "number",
   stream_interval_ms: "number", shell_timeout: "number",
-  audit_enabled: "checkbox", audit_log_path: "text",
-  audit_max_entries: "number", audit_rotation_mb: "number",
 };
 
 const FIELD_OPTIONS = {
@@ -110,7 +107,6 @@ function getGroupFields(groupKey) {
     commands: ["allow_commands", "deny_commands", "deny_regex", "allow_powershell", "strict_whitelist"],
     files: ["file_whitelist_paths", "file_blacklist_keywords", "file_max_read_bytes", "file_allow_write"],
     output: ["auto_screenshot", "screenshot_format", "screenshot_quality", "max_output_bytes", "stream_chunk_size", "stream_interval_ms", "shell_timeout"],
-    audit: ["audit_enabled", "audit_log_path", "audit_max_entries", "audit_rotation_mb"],
     security_warnings: ["_warn_ssh_tunnel", "_warn_short_token", "_warn_no_password", "_warn_require_encryption"],
   };
   return map[groupKey] || [];

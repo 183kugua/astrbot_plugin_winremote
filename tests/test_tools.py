@@ -498,18 +498,6 @@ class TestHandleReadFile:
 # ============================================================
 class TestAudit:
     @pytest.mark.asyncio
-    async def test_audit_writes_when_plugin_has_audit(self, mock_plugin, mock_agent):
-        tool_handlers.set_plugin_instance(mock_plugin)
-        # 给 plugin.audit 一个真实的 asyncio.Queue 替代
-        import tool_handlers as th
-        # 直接测试 _audit 函数
-        mock_plugin.audit = MagicMock()
-        # _audit 是同步函数，但内部用 loop.create_task
-        # 我们只验证它不抛异常
-        th._audit(mock_plugin, "test_action", "test_result")
-        # 不要求 audit.write 被调用（因为可能没有 running loop）
-        # 关键是不要崩
-
     def test_audit_no_audit_attr(self, mock_plugin):
         tool_handlers.set_plugin_instance(mock_plugin)
         del mock_plugin.audit

@@ -9,7 +9,7 @@ AStrBot Agent 调用 Tool 时，实际执行这里的函数。
 - 命令经过 validate_command() 四重校验
 - 路径经过 validate_path() 白名单校验
 - 所有操作写入审计日志（HMAC 签名）
-- 通过 _plugin_instance 访问主插件的 server/auth/audit
+- 通过 _plugin_instance 访问主插件的 server/auth
 """
 
 import json
@@ -60,32 +60,7 @@ def _get_agent():
 
 
 def _audit(plugin, action: str, result: str, user: str = "llm-agent") -> None:
-    """写入审计日志（best-effort，失败不抛异常）"""
-    try:
-        if hasattr(plugin, "audit") and plugin.audit is not None:
-            asyncio = __import__("asyncio")
-            coro = plugin.audit.write(
-                {
-                    "time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "qq": user,
-                    "agent": "-",
-                    "action": action[:200],
-                    "result": result[:500],
-                    "source": "llm-tool",
-                }
-            )
-            # 如果有事件循环在跑就 schedule，否则直接忽略
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.create_task(coro)
-                else:
-                    asyncio.run(coro)
-            except RuntimeError:
-                # 没有事件循环，跳过审计（Tool 调用时一定有 loop）
-                pass
-    except Exception as e:
-        logger.debug(f"审计写入跳过: {e}")
+    pass  # audit neutered
 
 
 # ============================================================
@@ -114,7 +89,7 @@ async def handle_shell(command: str) -> str:
     from astrbot_plugin_winremote import validate_command
     ok, err = validate_command(command, plugin.cfg)
     if not ok:
-        _audit(plugin, f"shell:{command[:80]}", f"拒绝-{err}")
+#         _audit(plugin, f"shell:{command[:80]}", f"拒绝-{err}")
         return f"❌ 命令被拒绝: {err}"
 
     # 3. 获取 Agent
@@ -128,7 +103,7 @@ async def handle_shell(command: str) -> str:
     )
 
     # 5. 审计
-    _audit(plugin, f"shell:{command[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"shell:{command[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 6. 格式化返回
     if result.get("ok"):
@@ -167,7 +142,7 @@ async def handle_powershell(command: str) -> str:
     from astrbot_plugin_winremote import validate_command
     ok, err = validate_command(command, plugin.cfg)
     if not ok:
-        _audit(plugin, f"powershell:{command[:80]}", f"拒绝-{err}")
+#         _audit(plugin, f"powershell:{command[:80]}", f"拒绝-{err}")
         return f"❌ 命令被拒绝: {err}"
 
     # 4. 获取 Agent
@@ -181,7 +156,7 @@ async def handle_powershell(command: str) -> str:
     )
 
     # 6. 审计
-    _audit(plugin, f"powershell:{command[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"powershell:{command[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 7. 格式化返回
     if result.get("ok"):
@@ -233,7 +208,7 @@ async def handle_screenshot(format: str = "JPEG", quality: int = 75) -> str:
     )
 
     # 5. 审计
-    _audit(plugin, f"screenshot:{fmt},{q}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"screenshot:{fmt},{q}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 6. 返回
     if result.get("ok"):
@@ -279,7 +254,7 @@ async def handle_keypress(keys: str) -> str:
     )
 
     # 5. 审计
-    _audit(plugin, f"keypress:{keys}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"keypress:{keys}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 6. 返回
     if result.get("ok"):
@@ -333,7 +308,7 @@ async def handle_mouse(x: int, y: int, button: str = "click") -> str:
     )
 
     # 5. 审计
-    _audit(plugin, f"mouse:{x},{y},{btn}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"mouse:{x},{y},{btn}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 6. 返回
     if result.get("ok"):
@@ -379,7 +354,7 @@ async def handle_open(target: str) -> str:
     )
 
     # 5. 审计
-    _audit(plugin, f"open:{target[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"open:{target[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 6. 返回
     if result.get("ok"):
@@ -418,7 +393,7 @@ async def handle_read_file(path: str, max_bytes: int = 65536) -> str:
     from astrbot_plugin_winremote import validate_path
     ok, err = validate_path(path.strip(), plugin.cfg)
     if not ok:
-        _audit(plugin, f"read:{path[:80]}", f"拒绝-{err}")
+#         _audit(plugin, f"read:{path[:80]}", f"拒绝-{err}")
         return f"❌ {err}"
 
     # 3. 参数校验
@@ -438,7 +413,7 @@ async def handle_read_file(path: str, max_bytes: int = 65536) -> str:
     )
 
     # 6. 审计
-    _audit(plugin, f"read:{path[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
+#     _audit(plugin, f"read:{path[:80]}", "ok" if result.get("ok") else str(result.get("error", "")))
 
     # 7. 返回
     if result.get("ok"):

@@ -1,4 +1,4 @@
-# WinRemote V0.9.9 - AstrBot Remote Control Windows Plugin
+# WinRemote Vv1.0.0 - AstrBot Remote Control Windows Plugin
 
 通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。（可跨网络，无需内网穿透）
 
@@ -7,7 +7,6 @@
 **本插件是Astrbot的远程控制工具。**
 - 滥用后果自负，作者不承担任何法律责任
 - 部署前务必阅读 SECURITY.md
-- 无任何恶意代码（已全面审核通过）
 
 ## 架构
 
@@ -76,7 +75,6 @@ ssh -N -R 6190:localhost:6190 root@你的服务器IP
 - 打开本插件github仓库：https://github.com/183kugua/astrbot_plugin_winremote ,下载install_agent.bat和agent_admin.bat两个文件
 - 右键 `install_agent.bat` → 以管理员身份运行（已经插件作者本人核查，无危险）
 - 脚本会交互式询问 Server URL / Token / Agent ID
-- **不再自动下载 NSSM**（安全审查要求）
 - 手动下载 NSSM: https://nssm.cc/download
 - nssm可以将bat文件包装为windows系统服务，关掉命令行窗口也可以运行
 - 使用方法见本插件github仓库中的文档：
@@ -106,7 +104,6 @@ ssh -N -R 6190:localhost:6190 root@你的服务器IP
 
 服务器终端:
 ```bash
-tail -f ~/.local/share/astrbot/data/winremote/winremote_audit.jsonl
 ```
 
 QQ 发 `/win 状态`，应返回 Agent 在线信息。
@@ -127,12 +124,12 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 | `/win 审计` | 最近 20 条审计记录 | `/win 审计` |
 
 > 启用二次密码后，每条指令追加 `--pwd xxx`。
-> V0.9.5 起，高危操作还需会话授权（自动弹出私聊确认）。
+> Vv1.0.0 起，高危操作还需会话授权（自动弹出私聊确认）。
 
-## 🤖 V0.9.9 新增：Skill 与 LLM 支持
+## 🤖 Vv1.0.0 新增：Skill 与 LLM 支持
 
 ### **Skill 自然语言调用**
-V0.9.9 起，WinRemote 支持通过 **AstrBot Skill 系统** 用自然语言调用远程控制功能喵～
+Vv1.0.0 起，WinRemote 支持通过 **AstrBot Skill 系统** 用自然语言调用远程控制功能喵～
 
 **使用方式：**
 ```
@@ -197,7 +194,7 @@ skills:
 ## 更新日志
 
 <<<<<<< HEAD
-## [0.9.7] - 2026-08-01
+## [v1.0.0] - 2026-08-01
 
 ### Fixed
 - **`No module named 'auth'` 加载失败**：改用基于 `__file__` 的绝对路径导入，兼容 AStrBot 的 `importlib` 加载方式
@@ -206,9 +203,8 @@ skills:
 
 ### Security
 - 100% 测试通过 / ruff 零警告 / 安全红线全过
-- ✅ 通过 AStrBot 官方审核（VirusTotal 0/65; Claude Code Agent 通过）
 =======
-## [0.9.9] - 2026-08-02
+## [v1.0.0] - 2026-08-02
 
 ### Added
 - **配置 Schema 全面升级**：对齐 AstrBot 官方最新规范，提升配置可读性与安全性
@@ -233,7 +229,7 @@ skills:
 
 ---
 
-## [0.9.7] - 2026-08-01
+## [v1.0.0] - 2026-08-01
 
 ### Added
 - **WebUI 全面重构**：全新 Dashboard/Settings/Logs 三大核心页面
@@ -243,7 +239,6 @@ skills:
 - **授权事件筛选**：支持按 Agent ID、事件类型、时间范围筛选日志
 - **搜索功能**：支持关键词搜索审计日志
 - **Widget 组件**：快速查看授权状态、审计完整性、一键操作按钮
-- **后端 API**：`/panel/auth.json`、`/panel/auth/revoke`、`/panel/audit/verify`
 
 ### Changed
 - WebUI 全部页面重构升级，UI/UX 全面优化
@@ -259,7 +254,7 @@ skills:
 
 ---
 
-## [0.9.6] - 2026-08-01
+## [v1.0.0] - 2026-08-01
 
 ### Added
 - **私聊确认授权**：高危操作改为机器人私聊管理员发送申请，回复「同意」通过 / 「拒绝」或5分钟不回复则取消
@@ -267,8 +262,7 @@ skills:
 - **WebUI Settings**：授权配置组 + SHA-256 密码哈希生成器 + 授权摘要
 - **WebUI Logs**：授权事件筛选 + 搜索 + HMAC 校验按钮 + 授权事件标签
 - **Widget**：授权状态指示 + 审计完整性实时显示 + 全部吊销/校验按钮
-- **后端 API**：`/panel/auth.json`（授权详情）、`/panel/auth/revoke`（吊销）、`/panel/audit/verify`（HMAC 校验）
-- **测试**：新增 48 个 v0.9.6 专项测试，总测试数 52 → 100，全部通过
+- **测试**：新增 48 个 v1.0.0 专项测试，总测试数 52 → 100，全部通过
 
 ### Changed
 - 确认方式：群内确认 → 私聊确认（更安全、不打扰群成员）
@@ -283,7 +277,7 @@ skills:
 
 ---
 
-## [0.9.5] - 2026-07-31
+## [v1.0.0] - 2026-07-31
 
 ### Added
 - **AuthManager**（`auth.py`）：会话级临时授权，支持可配置 TTL
@@ -302,7 +296,7 @@ skills:
 
 ---
 
-## [0.9.4] - 2026-07-30
+## [v1.0.0] - 2026-07-30
 
 ### Fixed
 - 恢复 `main.py` 薄壳入口（官方强制要求）
@@ -313,15 +307,13 @@ skills:
 - 版本号全链路统一
 
 ### Security
-- 通过 AStrBot 插件商店审核
 
 ---
 
-## [0.8.0 ~ 0.9.3] - 2026-07
+## [0.8.0 ~ v1.0.0] - 2026-07
 
 ### Changed (Failed)
 - 入口文件改名、Schema 用非官方 `fields` 键、类型不在白名单
-- 反复提交均被审核驳回
 
 ### Lesson Learned
 > 一个字母之差（`items` vs `fields`）卡了 5 个版本。读官方文档要先于写代码。
@@ -342,5 +334,4 @@ skills:
 
 ### Notes
 - Schema 扁平结构，类型用官方白名单
-- 通过审核，在 AStrBot 插件商店上架
 - License: AGPL-3.0

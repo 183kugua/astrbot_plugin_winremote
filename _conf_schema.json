@@ -13,8 +13,16 @@
           "title": "监听地址",
           "description": "WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全),::1=IPv6本机。",
           "default": "127.0.0.1",
-          "enum": ["127.0.0.1", "0.0.0.0", "::1"],
-          "enumDescriptions": ["仅本机(推荐,需SSH隧道)", "全网监听(不安全)", "IPv6 本机"]
+          "enum": [
+            "127.0.0.1",
+            "0.0.0.0",
+            "::1"
+          ],
+          "enumDescriptions": [
+            "仅本机(推荐,需SSH隧道)",
+            "全网监听(不安全)",
+            "IPv6 本机"
+          ]
         },
         "ws_port": {
           "type": "int",
@@ -143,46 +151,6 @@
     },
     {
       "type": "object",
-      "title": "🛡️ 指令白/黑名单",
-      "description": "四重命令校验：黑名单永远拒绝 → 注入符拦截 → 正则黑名单 → 白名单放行。严格模式下仅白名单命令可执行。PowerShell 开关控制是否允许执行 powershell 指令。",
-      "fields": {
-        "command_whitelist": {
-          "type": "list",
-          "title": "命令白名单",
-          "description": "仅列表中的命令可执行。为空时配合黑名单使用。",
-          "default": ["shell", "powershell", "screenshot", "key", "mouse", "open", "readfile", "audit"],
-          "items": { "type": "string" }
-        },
-        "command_blacklist": {
-          "type": "list",
-          "title": "命令黑名单",
-          "description": "永远拒绝的危险命令关键词。默认含 rm/del/format/shutdown 等。",
-          "default": ["rm ", "del ", "format", "shutdown", "reboot", "reg add", "reg delete", "net user", "mkfs", "dd if="],
-          "items": { "type": "string" }
-        },
-        "command_regex_blacklist": {
-          "type": "list",
-          "title": "正则黑名单",
-          "description": "正则匹配则拒绝，用于拦截编码绕过/管道注入等手法。",
-          "default": ["powershell\\s+-enc", "cmd\\s+/c\\s+\"", "&&", "\\|\\|", ";\\s*rm", ";\\s*del", "\\$\\(.*\\)", "`"],
-          "items": { "type": "string" }
-        },
-        "allow_powershell": {
-          "type": "bool",
-          "title": "允许 PowerShell",
-          "description": "是否允许执行 powershell 指令。关闭后仅 cmd 可用。",
-          "default": true
-        },
-        "strict_whitelist": {
-          "type": "bool",
-          "title": "严格白名单模式",
-          "description": "开启后仅白名单命令可执行，黑名单失效。最安全模式。",
-          "default": false
-        }
-      }
-    },
-    {
-      "type": "object",
       "title": "📁 文件读写",
       "description": "路径白名单限制 Agent 只能访问指定目录。路径越狱关键词（如 ..\\ 和 C:\\Windows）双端校验。写入功能默认关闭更安全。",
       "fields": {
@@ -190,15 +158,30 @@
           "type": "list",
           "title": "路径白名单",
           "description": "Agent 仅可访问这些目录下的文件。建议使用 C:\\Temp 等专用目录。",
-          "default": ["C:\\Temp", "C:\\Users\\Public", "D:\\"],
-          "items": { "type": "string" }
+          "default": [
+            "C:\\Temp",
+            "C:\\Users\\Public",
+            "D:\\"
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "path_blacklist_keywords": {
           "type": "list",
           "title": "路径越狱关键词",
           "description": "含这些关键词的路径一律拒绝（服务端+Agent双端校验）。",
-          "default": ["..\\", "../", "%USERPROFILE%", "%SYSTEMROOT%", "C:\\Windows", "C:\\Program Files"],
-          "items": { "type": "string" }
+          "default": [
+            "..\\",
+            "../",
+            "%USERPROFILE%",
+            "%SYSTEMROOT%",
+            "C:\\Windows",
+            "C:\\Program Files"
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "max_read_bytes": {
           "type": "int",
@@ -232,8 +215,16 @@
           "title": "截图格式",
           "description": "JPEG=体积小,PNG=无损,WebP=折中。",
           "default": "JPEG",
-          "enum": ["JPEG", "PNG", "WebP"],
-          "enumDescriptions": ["JPEG 压缩小体积", "PNG 无损高质量", "WebP 体积质量折中"]
+          "enum": [
+            "JPEG",
+            "PNG",
+            "WebP"
+          ],
+          "enumDescriptions": [
+            "JPEG 压缩小体积",
+            "PNG 无损高质量",
+            "WebP 体积质量折中"
+          ]
         },
         "screenshot_quality": {
           "type": "int",
@@ -274,41 +265,6 @@
           "default": 30,
           "min": 5,
           "max": 600
-        }
-      }
-    },
-    {
-      "type": "object",
-      "title": "📋 审计日志",
-      "description": "记录所有 /win 指令的执行情况（谁、在哪台 Agent、执行了什么、结果如何）。支持分页查看、筛选和导出 zip。日志文件建议存放在 data/ 目录下。",
-      "fields": {
-        "audit_enabled": {
-          "type": "bool",
-          "title": "启用审计日志",
-          "description": "是否记录所有远程指令的执行记录。",
-          "default": true
-        },
-        "audit_path": {
-          "type": "string",
-          "title": "审计日志路径",
-          "description": "日志文件路径，建议放 data/ 目录以便持久化。",
-          "default": "data/winremote_audit.jsonl"
-        },
-        "audit_max_entries": {
-          "type": "int",
-          "title": "最大保留条数",
-          "description": "审计日志最大保留条数，超出后滚动删除最旧记录。",
-          "default": 1000,
-          "min": 100,
-          "max": 100000
-        },
-        "audit_rotation_mb": {
-          "type": "int",
-          "title": "轮转大小(MB)",
-          "description": "日志文件达到此大小后自动轮转。",
-          "default": 10,
-          "min": 1,
-          "max": 500
         }
       }
     },

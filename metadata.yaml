@@ -1,11 +1,11 @@
 name: astrbot_plugin_winremote
 display_name: "WinRemote 远程辅助工具"
-version: "v0.9.9"
+version: 1.0.0
 desc: "WinRemote远程控制工具v0.9.9。通过QQ远程控制Windows电脑：指令执行、桌面截图、文件读写、键鼠模拟。支持会话级临时授权、私聊确认、HMAC审计日志。"
 author: "183kugua"
 repo: "https://github.com/183kugua/astrbot_plugin_winremote"
 license: "AGPL-3.0"
-astrbot_version: ">=4.13"
+astrbot_version: 1.0.0
 support_platforms:
   - aiocqhttp
 tags:

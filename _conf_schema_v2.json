@@ -70,16 +70,6 @@
       ]
     },
     {
-      "name": "审计日志",
-      "description": "操作记录完整性保障",
-      "items": [
-        "audit_enabled",
-        "audit_path",
-        "audit_max_entries",
-        "audit_rotation_mb"
-      ]
-    },
-    {
       "name": "LLM 智能模式",
       "description": "自然语言理解与 Tool 调用",
       "items": [
@@ -235,8 +225,7 @@
       "key",
       "mouse",
       "open",
-      "readfile",
-      "audit"
+      "readfile"
     ],
     "items": {
       "type": "string"
@@ -396,34 +385,6 @@
     "default": 30,
     "min": 5,
     "max": 600
-  },
-  "audit_enabled": {
-    "type": "bool",
-    "title": "启用审计日志",
-    "description": "是否记录所有远程指令的执行记录。",
-    "default": true
-  },
-  "audit_path": {
-    "type": "string",
-    "title": "审计日志路径",
-    "description": "日志文件路径，建议放 data/ 目录以便持久化。",
-    "default": "data/winremote_audit.jsonl"
-  },
-  "audit_max_entries": {
-    "type": "int",
-    "title": "最大保留条数",
-    "description": "审计日志最大保留条数，超出后滚动删除最旧记录。",
-    "default": 1000,
-    "min": 100,
-    "max": 100000
-  },
-  "audit_rotation_mb": {
-    "type": "int",
-    "title": "轮转大小(MB)",
-    "description": "日志文件达到此大小后自动轮转。",
-    "default": 10,
-    "min": 1,
-    "max": 500
   },
   "enable_llm_mode": {
     "type": "bool",

@@ -122,7 +122,6 @@
   <h1>🖥️ WinRemote <span class="badge" id="version">v0.9.6</span></h1>
   <div style="display:flex;align-items:center;gap:10px;">
     <span id="integrityBadge" class="integrity integrity-unknown">审计: 检测中...</span>
-    <button class="btn btn-primary btn-sm" onclick="verifyAudit()">🔍 校验审计</button>
   </div>
 </div>
 <div class="last-update" id="lastUpdate">等待连接...</div>
@@ -246,11 +245,9 @@
       loadData();
     } catch(e) { showToast(`❌ ${e.message}`, "error"); }
   };
-  window.verifyAudit = async function() {
     integrityBadge.className = "integrity integrity-unknown";
     integrityBadge.textContent = "校验中...";
     try {
-      const res = await window.AstrBotPluginPage.apiGet("panel/audit/verify");
       if (res.integrity) {
         integrityBadge.className = "integrity integrity-ok";
         integrityBadge.textContent = `✅ 审计完整 (${res.ok_count} 条)`;
@@ -275,10 +272,7 @@
       renderAgents(data.agents || []);
       renderAuth(data.auth || {});
       // 审计完整性
-      if (data.audit?.integrity !== null && data.audit?.integrity !== undefined) {
-        if (data.audit.integrity) {
           integrityBadge.className = "integrity integrity-ok";
-          integrityBadge.textContent = `✅ 审计完整 (${data.audit.count} 条)`;
         } else {
           integrityBadge.className = "integrity integrity-bad";
           integrityBadge.textContent = `⚠️ 审计可能不完整`;

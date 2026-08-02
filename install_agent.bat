@@ -110,7 +110,6 @@ echo.
 
 echo [4/4] 关于 NSSM 服务注册...
 echo.
-echo ⚠️ V0.9.5 不再自动下载 NSSM（安全审查要求）
 echo.
 echo 如需注册为 Windows 服务（开机自启），请手动操作：
 echo   1. 从 https://nssm.cc/download 下载 NSSM

@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 - **WebUI Settings**：授权配置组 + SHA-256 密码哈希生成器 + 授权摘要
 - **WebUI Logs**：授权事件筛选 + 搜索 + HMAC 校验按钮 + 授权事件标签
 - **Widget**：授权状态指示 + 审计完整性实时显示 + 全部吊销/校验按钮
-- **后端 API**：`/panel/auth.json`（授权详情）、`/panel/auth/revoke`（吊销）、`/panel/audit/verify`（HMAC 校验）
 - **测试**：新增 48 个 v0.9.6 专项测试，总测试数 52 → 100，全部通过
 
 ### Changed
@@ -33,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 - 审计日志文件权限设为只读（0o444）
 - 非管理员回复私聊确认一律忽略
 - 100% 测试通过 / ruff 零警告 / 安全红线全过
-- ✅ 通过 AStrBot 官方审核（VirusTotal 0/65, Claude Code Agent 通过）
 
 ---
 
@@ -57,7 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 - Schema 格式：`fields` → `items` 嵌套（官方规范）
 - 类型对齐白名单：`integer`→`int`、`boolean`→`bool`、`array`→`list`
 - 新增 `requirements.txt`（websockets>=11.0,<16.0）
-- 通过 AStrBot 插件商店审核
 
 ---
 
@@ -65,7 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ### Changed (Failed)
 - 入口文件改名、Schema 用非官方 `fields` 键、类型不在白名单
-- 反复提交均被审核驳回
 - **教训**：`items` vs `fields` 一字之差卡了 5 个版本
 
 ---
@@ -76,4 +72,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 - 首个上架版本
 - 受限命令执行、桌面截图、文件读写、键鼠模拟、进程管理
 - License: AGPL-3.0
-- 通过审核，在 AStrBot 插件商店上架

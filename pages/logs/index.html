@@ -239,7 +239,6 @@
     badge.className = "integrity integrity-unknown";
     badge.textContent = "校验中...";
     try {
-      const res = await window.AstrBotPluginPage.apiGet("panel/audit/verify");
       verifyResult = res;
       if (res.integrity) {
         badge.className = "integrity integrity-ok";
@@ -259,7 +258,6 @@
   // ===== 导出 =====
   window.exportLogs = async function() {
     try {
-      await window.AstrBotPluginPage.download("logs/export", { filename: `winremote_audit_${Date.now()}.jsonl` });
     } catch (e) {
       alert(`导出失败: ${e.message}`);
     }
@@ -276,7 +274,6 @@
     const params = new URLSearchParams({ page: 1, size: parseInt($("#pageSize").value) || 20 });
     const [data, verifyRes] = await Promise.all([
       window.AstrBotPluginPage.apiGet(`logs/list?${params}`),
-      window.AstrBotPluginPage.apiGet("panel/audit/verify").catch(()=>({})),
     ]);
     allData = data.items || [];
     totalPages = Math.max(1, Math.ceil(data.total / (parseInt($("#pageSize").value) || 20)));
