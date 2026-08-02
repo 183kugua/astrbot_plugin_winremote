@@ -1,7 +1,7 @@
 ---
 name: winremote-remote-control
 description: WinRemote 远程控制 Windows 电脑的技能包。当用户需要查看远程电脑状态、执行系统命令、截图、操控键鼠、读取文件、打开程序时使用。
-version: V0.9.8
+version: V0.9.9
 author: 183kugua
 ---
 

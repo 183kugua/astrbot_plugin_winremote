@@ -1,10 +1,10 @@
 """
-__init__.py — 薄壳（V0.9.8）
+__init__.py — 薄壳（V0.9.9）
 ==================================
 唯一职责：让 `from astrbot_plugin_winremote import ...` 可用。
 真实逻辑全部在 astrbot_plugin_winremote.py（与目录同名，AStrBot 入口）。
 
-V0.9.8 变更：
+V0.9.9 变更：
 - LLM Tool 注册（add_llm_tools，v4.5.7+ 推荐方式）
 - Skill 技能包自动加载（skills/winremote-remote-control/）
 - /win --llm 降级通道（LLM 不可用时退回传统指令）

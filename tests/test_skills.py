@@ -1,5 +1,5 @@
 """
-test_skills.py - WinRemote v0.9.8 Skill 注册测试
+test_skills.py - WinRemote v0.9.9 Skill 注册测试
 =============================================
 测试 skills/winremote-remote-control/ 目录结构、文件内容和注册逻辑。
 """
@@ -259,18 +259,18 @@ class TestSkillRegistration:
 # 5. 版本号一致性测试
 # ============================================================
 class TestVersionConsistency:
-    """v0.9.8 版本号全链路一致"""
+    """v0.9.9 版本号全链路一致"""
 
     def test_version_file(self):
         v = (_PLUGIN_DIR / "VERSION").read_text(encoding="utf-8").strip()
-        assert v == "V0.9.8", f"VERSION 文件: {v}"
+        assert v == "V0.9.9", f"VERSION 文件: {v}"
 
     def test_pyproject_version(self):
         p = (_PLUGIN_DIR / "pyproject.toml").read_text(encoding="utf-8")
         for line in p.split("\n"):
             if line.startswith("version"):
                 v = line.split("=", 1)[1].strip().strip('"')
-                assert v == "0.9.8", f"pyproject.toml version: {v}"
+                assert v == "0.9.9", f"pyproject.toml version: {v}"
                 return
         pytest.fail("pyproject.toml 未找到 version")
 
@@ -279,7 +279,7 @@ class TestVersionConsistency:
         for line in m.split("\n"):
             if line.startswith("version:"):
                 v = line.split(":", 1)[1].strip().strip('"')
-                assert "V0.9.8" in v or "v0.9.8" in v, f"metadata.yaml version: {v}"
+                assert "V0.9.9" in v or "v0.9.9" in v, f"metadata.yaml version: {v}"
                 return
         pytest.fail("metadata.yaml 未找到 version")
 
@@ -288,7 +288,7 @@ class TestVersionConsistency:
         for line in w.split("\n"):
             if line.startswith('VERSION = "'):
                 v = line.split('"')[1]
-                assert v == "V0.9.8", f"webui_panel.py VERSION: {v}"
+                assert v == "V0.9.9", f"webui_panel.py VERSION: {v}"
                 return
         pytest.fail("webui_panel.py 未找到 VERSION")
 
@@ -299,7 +299,7 @@ class TestVersionConsistency:
         for line in fm.split("\n"):
             if line.strip().startswith("version:"):
                 v = line.split(":", 1)[1].strip()
-                assert v == "V0.9.8" or v == "0.9.8", f"SKILL.md version: {v}"
+                assert v == "V0.9.9" or v == "0.9.9", f"SKILL.md version: {v}"
                 return
         pytest.fail("SKILL.md frontmatter 未找到 version")
 

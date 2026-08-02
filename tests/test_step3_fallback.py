@@ -1,5 +1,5 @@
 """
-test_step3_fallback.py — WinRemote V0.9.8 Step 3 测试
+test_step3_fallback.py — WinRemote V0.9.9 Step 3 测试
 ====================================================
 测试降级通道逻辑：
 - /win --llm 开关
@@ -183,7 +183,7 @@ class TestLLMDisabled:
         await wr.WinRemotePlugin.cmd_win(plugin, handler, event)
         sent = handler.send.call_args[0][0] if handler.send.called else ""
         # 帮助信息应包含版本号
-        assert "V0.9.8" in sent or "v0.9.8" in sent.lower(), f"帮助信息应包含版本号: {sent[:200]}"
+        assert "V0.9.9" in sent or "v0.9.9" in sent.lower(), f"帮助信息应包含版本号: {sent[:200]}"
 
     async def test_llm_disabled_help_hint(self):
         """LLM 关闭时，帮助信息应提示开启"""

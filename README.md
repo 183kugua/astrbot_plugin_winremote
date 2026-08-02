@@ -1,4 +1,4 @@
-# WinRemote V0.9.8 - AstrBot Remote Control Windows Plugin
+# WinRemote V0.9.9 - AstrBot Remote Control Windows Plugin
 
 通过 QQ 消息远程控制 Windows 主机：执行命令、截图、键鼠模拟、文件读写。（可跨网络，无需内网穿透）
 
@@ -129,10 +129,10 @@ QQ 发 `/win 状态`，应返回 Agent 在线信息。
 > 启用二次密码后，每条指令追加 `--pwd xxx`。
 > V0.9.5 起，高危操作还需会话授权（自动弹出私聊确认）。
 
-## 🤖 V0.9.8 新增：Skill 与 LLM 支持
+## 🤖 V0.9.9 新增：Skill 与 LLM 支持
 
 ### **Skill 自然语言调用**
-V0.9.8 起，WinRemote 支持通过 **AstrBot Skill 系统** 用自然语言调用远程控制功能喵～
+V0.9.9 起，WinRemote 支持通过 **AstrBot Skill 系统** 用自然语言调用远程控制功能喵～
 
 **使用方式：**
 ```
@@ -208,7 +208,7 @@ skills:
 - 100% 测试通过 / ruff 零警告 / 安全红线全过
 - ✅ 通过 AStrBot 官方审核（VirusTotal 0/65; Claude Code Agent 通过）
 =======
-## [0.9.8] - 2026-08-02
+## [0.9.9] - 2026-08-02
 
 ### Added
 - **配置 Schema 全面升级**：对齐 AstrBot 官方最新规范，提升配置可读性与安全性
@@ -255,7 +255,7 @@ skills:
 - 审计日志文件权限设为只读（0o444）
 - 非管理员回复私聊确认一律忽略
 - 100% 测试通过 / ruff 零警告 / 安全红线全过
->>>>>>> 2cfd086 (📝 更新 v0.9.8 更新日志 + 补充 v0.9.7 记录)
+
 
 ---
 

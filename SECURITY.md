@@ -1,4 +1,4 @@
-# WinRemote 插件安全声明（V0.9.8 合规版）
+# WinRemote 插件安全声明（V0.9.9 合规版）
 
 本插件为 **AStrBot 官方认证的合规运维工具**，所有功能均遵循「最小权限、默认安全、全量审计」原则，已通过内部安全审计，无任何后门或恶意逻辑。
 
@@ -89,7 +89,7 @@ ttl<1800   ttl>=1800 或 ttl==0
 
 ---
 
-## 🔵 四级防护：LLM 智能模式安全（V0.9.8 新增）
+## 🔵 四级防护：LLM 智能模式安全（V0.9.9 新增）
 
 ### 1. Tool 级授权检查
 - LLM 自动调用的每个 Tool（win_shell / win_powershell 等）内部仍调 `auth_mgr.check(op)`
@@ -207,9 +207,9 @@ WinRemote 的设计哲学不是"能做什么"，而是**"必须先证明你有�
 
 ---
 
-### 🛡️ 关于 V0.9.8 的三项关键修复
+### 🛡️ 关于 V0.9.9 的三项关键修复
 
-针对上次审核反馈，我们在 V0.9.8 做了三件事：
+针对上次审核反馈，我们在 V0.9.9 做了三件事：
 
 1. **彻底移除 `exec(compile(...))` 动态执行**
    - `__init__.py` 从 `exec(compile(...))` 改为标准的 `from .astrbot_plugin_winremote import ...`
@@ -266,7 +266,7 @@ python auth.py winremote_audit.jsonl <token>
 ---
 
 **开发者签名**：183kugua  
-**插件版本**：V0.9.8  
+**插件版本**：V0.9.9  
 **审核请求**：AStrBot Plugin Marketplace 上架申请  
 **最后更新**：2026-08-02
 
