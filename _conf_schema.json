@@ -1,157 +1,154 @@
 {
-  "type": "object",
-  "title": "WinRemote 远程控制 - 插件配置",
-  "description": "通过 QQ 远程控制 Windows 电脑的 AstrBot 插件。",
-  "fields": {
-    "ws_host": {
-      "type": "string",
-      "title": "监听地址",
-      "description": "WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全)",
-      "default": "127.0.0.1"
-    },
-    "ws_port": {
-      "type": "int",
-      "title": "监听端口",
-      "description": "WebSocket 监听端口，范围 1024-65535。",
-      "default": 6190
-    },
-    "ws_path": {
-      "type": "string",
-      "title": "WebSocket 路径",
-      "description": "WebSocket 连接路径。",
-      "default": "/winremote"
-    },
-    "max_agents": {
-      "type": "int",
-      "title": "最大 Agent 数",
-      "description": "同时连接的最大 Agent 数量。",
-      "default": 8
-    },
-    "secret_token": {
-      "type": "string",
-      "title": "共享密钥 (Token)",
-      "description": "Agent 连接时校验身份，建议 ≥16 位随机字符串。",
-      "default": "change-me-to-a-long-random-token"
-    },
-    "admin_password": {
-      "type": "string",
-      "title": "二次密码",
-      "description": "可选。留空=不启用；填写后每条指令需追加 --pwd",
-      "default": ""
-    },
-    "password_max_attempts": {
-      "type": "int",
-      "title": "密码最大重试次数",
-      "description": "连续输错几次后触发封禁。",
-      "default": 5
-    },
-    "password_ban_duration": {
-      "type": "int",
-      "title": "封禁时长(秒)",
-      "description": "密码错误封禁持续时间。",
-      "default": 300
-    },
-    "require_encryption": {
-      "type": "bool",
-      "title": "要求加密连接",
-      "description": "设为 true 时拒绝非 wss://",
-      "default": false
-    },
-    "auth_ttl_seconds": {
-      "type": "int",
-      "title": "授权有效期(秒)",
-      "description": "高危操作会话授权有效期，默认300秒",
-      "default": 300
-    },
-    "admin_qq": {
-      "type": "list",
-      "title": "管理员 QQ 白名单",
-      "description": "允许使用 /win 指令的 QQ 号列表",
-      "default": [],
-      "items": {
-        "type": "int"
-      }
-    },
-    "allow_group": {
-      "type": "bool",
-      "title": "允许群聊触发",
-      "description": "是否允许在群聊中使用",
-      "default": false
-    },
-    "heartbeat_interval": {
-      "type": "int",
-      "title": "心跳间隔(秒)",
-      "description": "Agent 心跳间隔",
-      "default": 15
-    },
-    "heartbeat_timeout": {
-      "type": "int",
-      "title": "心跳超时(秒)",
-      "description": "超过此时长判定离线",
-      "default": 45
-    },
-    "path_whitelist": {
-      "type": "list",
-      "title": "路径白名单",
-      "description": "Agent 仅可访问这些目录",
-      "default": ["C:\\Temp"],
-      "items": {
-        "type": "string"
-      }
-    },
-    "max_read_bytes": {
-      "type": "int",
-      "title": "最大读取字节",
-      "description": "单文件最大读取量",
-      "default": 65536
-    },
-    "file_allow_write": {
-      "type": "bool",
-      "title": "允许写入文件",
-      "description": "默认关闭",
-      "default": false
-    },
-    "auto_screenshot": {
-      "type": "bool",
-      "title": "自动截图",
-      "description": "指令后自动附带截图",
-      "default": true
-    },
-    "screenshot_format": {
-      "type": "string",
-      "title": "截图格式",
-      "description": "JPEG/PNG/WebP",
-      "default": "JPEG"
-    },
-    "screenshot_quality": {
-      "type": "int",
-      "title": "截图质量(1-100)",
-      "description": "仅 JPEG/WebP 有效",
-      "default": 75
-    },
-    "max_output_bytes": {
-      "type": "int",
-      "title": "最大输出字节",
-      "description": "单次输出上限",
-      "default": 8192
-    },
-    "stream_chunk_size": {
-      "type": "int",
-      "title": "流式分块大小",
-      "description": "分段推送大小",
-      "default": 1024
-    },
-    "stream_interval_ms": {
-      "type": "int",
-      "title": "推送间隔(毫秒)",
-      "description": "两次推送间隔",
-      "default": 500
-    },
-    "shell_timeout": {
-      "type": "int",
-      "title": "Shell 超时(秒)",
-      "description": "命令超时时间",
-      "default": 30
+  "ws_host": {
+    "type": "string",
+    "title": "监听地址",
+    "description": "WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全)",
+    "default": "127.0.0.1"
+  },
+  "ws_port": {
+    "type": "int",
+    "title": "监听端口",
+    "description": "WebSocket 监听端口，范围 1024-65535。",
+    "default": 6190
+  },
+  "ws_path": {
+    "type": "string",
+    "title": "WebSocket 路径",
+    "description": "WebSocket 连接路径。",
+    "default": "/winremote"
+  },
+  "max_agents": {
+    "type": "int",
+    "title": "最大 Agent 数",
+    "description": "同时连接的最大 Agent 数量。",
+    "default": 8
+  },
+  "secret_token": {
+    "type": "string",
+    "title": "共享密钥 (Token)",
+    "description": "Agent 连接时校验身份，建议 ≥16 位随机字符串。",
+    "default": "change-me-to-a-long-random-token"
+  },
+  "admin_password": {
+    "type": "string",
+    "title": "二次密码",
+    "description": "可选。留空=不启用；填写后每条指令需追加 --pwd",
+    "default": ""
+  },
+  "password_max_attempts": {
+    "type": "int",
+    "title": "密码最大重试次数",
+    "description": "连续输错几次后触发封禁。",
+    "default": 5
+  },
+  "password_ban_duration": {
+    "type": "int",
+    "title": "封禁时长(秒)",
+    "description": "密码错误封禁持续时间。",
+    "default": 300
+  },
+  "require_encryption": {
+    "type": "bool",
+    "title": "要求加密连接",
+    "description": "设为 true 时拒绝非 wss://",
+    "default": false
+  },
+  "auth_ttl_seconds": {
+    "type": "int",
+    "title": "授权有效期(秒)",
+    "description": "高危操作会话授权有效期，默认300秒",
+    "default": 300
+  },
+  "admin_qq": {
+    "type": "list",
+    "title": "管理员 QQ 白名单",
+    "description": "允许使用 /win 指令的 QQ 号列表",
+    "default": [],
+    "items": {
+      "type": "int"
     }
+  },
+  "allow_group": {
+    "type": "bool",
+    "title": "允许群聊触发",
+    "description": "是否允许在群聊中使用",
+    "default": false
+  },
+  "heartbeat_interval": {
+    "type": "int",
+    "title": "心跳间隔(秒)",
+    "description": "Agent 心跳间隔",
+    "default": 15
+  },
+  "heartbeat_timeout": {
+    "type": "int",
+    "title": "心跳超时(秒)",
+    "description": "超过此时长判定离线",
+    "default": 45
+  },
+  "path_whitelist": {
+    "type": "list",
+    "title": "路径白名单",
+    "description": "Agent 仅可访问这些目录",
+    "default": [
+      "C:\\Temp"
+    ],
+    "items": {
+      "type": "string"
+    }
+  },
+  "max_read_bytes": {
+    "type": "int",
+    "title": "最大读取字节",
+    "description": "单文件最大读取量",
+    "default": 65536
+  },
+  "file_allow_write": {
+    "type": "bool",
+    "title": "允许写入文件",
+    "description": "默认关闭",
+    "default": false
+  },
+  "auto_screenshot": {
+    "type": "bool",
+    "title": "自动截图",
+    "description": "指令后自动附带截图",
+    "default": true
+  },
+  "screenshot_format": {
+    "type": "string",
+    "title": "截图格式",
+    "description": "JPEG/PNG/WebP",
+    "default": "JPEG"
+  },
+  "screenshot_quality": {
+    "type": "int",
+    "title": "截图质量(1-100)",
+    "description": "仅 JPEG/WebP 有效",
+    "default": 75
+  },
+  "max_output_bytes": {
+    "type": "int",
+    "title": "最大输出字节",
+    "description": "单次输出上限",
+    "default": 8192
+  },
+  "stream_chunk_size": {
+    "type": "int",
+    "title": "流式分块大小",
+    "description": "分段推送大小",
+    "default": 1024
+  },
+  "stream_interval_ms": {
+    "type": "int",
+    "title": "推送间隔(毫秒)",
+    "description": "两次推送间隔",
+    "default": 500
+  },
+  "shell_timeout": {
+    "type": "int",
+    "title": "Shell 超时(秒)",
+    "description": "命令超时时间",
+    "default": 30
   }
 }
