@@ -2,67 +2,78 @@
   "ws_host": {
     "type": "string",
     "title": "监听地址",
-    "description": "WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全)",
+    "description": "WebSocket 监听地址",
+    "hint": "127.0.0.1=仅本机（推荐，需SSH隧道），0.0.0.0=全网（不安全，仅限内网环境）",
     "default": "127.0.0.1"
   },
   "ws_port": {
     "type": "int",
     "title": "监听端口",
-    "description": "WebSocket 监听端口，范围 1024-65535。",
+    "description": "WebSocket 监听端口",
+    "hint": "端口号范围 1024-65535，请确保未被其他程序占用",
     "default": 6190
   },
   "ws_path": {
     "type": "string",
     "title": "WebSocket 路径",
-    "description": "WebSocket 连接路径。",
+    "description": "WebSocket 连接路径",
+    "hint": "Agent 连接时的 URL 路径，如 /winremote。需以 / 开头",
     "default": "/winremote"
   },
   "max_agents": {
     "type": "int",
     "title": "最大 Agent 数",
-    "description": "同时连接的最大 Agent 数量。",
+    "description": "最大 Agent 连接数",
+    "hint": "同时连接到本服务的 Agent（Windows客户端）的最大数量",
     "default": 8
   },
   "secret_token": {
     "type": "string",
     "title": "共享密钥 (Token)",
-    "description": "Agent 连接时校验身份，建议 ≥16 位随机字符串。",
+    "description": "Agent 身份验证令牌",
+    "hint": "Agent 连接时需提供此令牌校验身份，建议使用 ≥16 位的随机字符串，勿使用默认值",
     "default": "change-me-to-a-long-random-token"
   },
   "admin_password": {
     "type": "string",
     "title": "二次密码",
-    "description": "可选。留空=不启用；填写后每条指令需追加 --pwd",
+    "description": "高危操作二次密码",
+    "hint": "可选。留空则不启用二次验证；填写后，Agent 执行每条指令时需在命令末尾追加 --pwd <此密码>",
     "default": ""
   },
   "password_max_attempts": {
     "type": "int",
     "title": "密码最大重试次数",
-    "description": "连续输错几次后触发封禁。",
+    "description": "密码错误封禁阈值",
+    "hint": "Agent 连续输错密码达到此次数后，将触发临时封禁",
     "default": 5
   },
   "password_ban_duration": {
     "type": "int",
     "title": "封禁时长(秒)",
-    "description": "密码错误封禁持续时间。",
+    "description": "密码封禁持续时间",
+    "hint": "触发封禁后，Agent 需等待此秒数才能重新尝试连接",
     "default": 300
   },
   "require_encryption": {
     "type": "bool",
     "title": "要求加密连接",
-    "description": "设为 true 时拒绝非 wss://",
+    "description": "强制使用 WSS 加密",
+    "hint": "开启后只接受 wss:// 连接，拒绝未加密的 ws://。如需公网使用建议开启并配合证书",
     "default": false
   },
   "auth_ttl_seconds": {
     "type": "int",
     "title": "授权有效期(秒)",
-    "description": "高危操作会话授权有效期，默认300秒",
+    "description": "会话授权有效期",
+    "hint": "高危操作（如 shell 执行、文件写入）的临时授权会话在多少秒后自动失效",
     "default": 300
   },
   "admin_qq": {
     "type": "list",
     "title": "管理员 QQ 白名单",
-    "description": "允许使用 /win 指令的 QQ 号列表",
+    "description": "允许使用 /win 的 QQ 号",
+    "hint": "添加可执行 /win 远程指令的 QQ 号。留空则仅限私聊的 Bot 管理员使用",
     "default": [],
     "items": {
       "type": "int"
@@ -71,25 +82,29 @@
   "allow_group": {
     "type": "bool",
     "title": "允许群聊触发",
-    "description": "是否允许在群聊中使用",
+    "description": "是否允许在群聊中响应",
+    "hint": "开启后可在群聊中使用 /win 指令，请确保 admin_qq 白名单已正确配置",
     "default": false
   },
   "heartbeat_interval": {
     "type": "int",
     "title": "心跳间隔(秒)",
-    "description": "Agent 心跳间隔",
+    "description": "Agent 心跳发送间隔",
+    "hint": "Agent 每隔多少秒向服务端发送一次心跳包，用于保持连接活跃",
     "default": 15
   },
   "heartbeat_timeout": {
     "type": "int",
     "title": "心跳超时(秒)",
-    "description": "超过此时长判定离线",
+    "description": "心跳超时判离阈值",
+    "hint": "超过此时长未收到心跳，服务端判定 Agent 已离线",
     "default": 45
   },
   "path_whitelist": {
     "type": "list",
     "title": "路径白名单",
-    "description": "Agent 仅可访问这些目录",
+    "description": "Agent 可访问目录白名单",
+    "hint": "Agent 的文件读写操作仅允许访问列表中的目录路径，用于限制操作范围提升安全性",
     "default": [
       "C:\\Temp"
     ],
@@ -100,55 +115,64 @@
   "max_read_bytes": {
     "type": "int",
     "title": "最大读取字节",
-    "description": "单文件最大读取量",
+    "description": "单文件最大读取字节数",
+    "hint": "限制 Agent 单次读取文件的最大字节数，防止传输过大文件占用带宽",
     "default": 65536
   },
   "file_allow_write": {
     "type": "bool",
     "title": "允许写入文件",
-    "description": "默认关闭",
+    "description": "是否允许 Agent 写入文件",
+    "hint": "出于安全考虑默认关闭；开启后 Agent 可向白名单路径写入文件",
     "default": false
   },
   "auto_screenshot": {
     "type": "bool",
     "title": "自动截图",
-    "description": "指令后自动附带截图",
+    "description": "指令后自动附带桌面截图",
+    "hint": "开启后每次执行远程指令自动附带一张 Agent 桌面截图，方便查看操作结果",
     "default": true
   },
   "screenshot_format": {
     "type": "string",
     "title": "截图格式",
-    "description": "JPEG/PNG/WebP",
+    "description": "截图图片格式",
+    "hint": "支持 JPEG / PNG / WebP 三种格式，JPEG 体积最小，PNG 无损但较大",
     "default": "JPEG"
   },
   "screenshot_quality": {
     "type": "int",
     "title": "截图质量(1-100)",
-    "description": "仅 JPEG/WebP 有效",
+    "description": "截图压缩质量",
+    "hint": "仅对 JPEG 和 WebP 格式有效，数值越大画质越好但体积越大",
     "default": 75
   },
   "max_output_bytes": {
     "type": "int",
     "title": "最大输出字节",
-    "description": "单次输出上限",
+    "description": "单次命令输出上限",
+    "hint": "命令执行结果超过此字节数将被截断，防止输出过长刷屏",
     "default": 8192
   },
   "stream_chunk_size": {
     "type": "int",
     "title": "流式分块大小",
-    "description": "分段推送大小",
+    "description": "流式推送单块大小",
+    "hint": "长输出分段推送时，每段的大小（字节）。建议不超过 2000",
     "default": 1024
   },
   "stream_interval_ms": {
     "type": "int",
     "title": "推送间隔(毫秒)",
-    "description": "两次推送间隔",
+    "description": "流式分块发送间隔",
+    "hint": "两次分段推送之间的等待时间，避免消息发送过于频繁被限流",
     "default": 500
   },
   "shell_timeout": {
     "type": "int",
     "title": "Shell 超时(秒)",
-    "description": "命令超时时间",
+    "description": "命令执行超时时间",
+    "hint": "命令超过此时长未返回结果则强制终止，避免长期卡住",
     "default": 30
   }
 }
