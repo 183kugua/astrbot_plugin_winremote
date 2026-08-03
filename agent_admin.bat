@@ -1,42 +1,42 @@
 @echo off
 setlocal EnableDelayedExpansion
-chcp 65001 >nul
+
 
 REM ============================================================
-REM WinRemote Agent V1.0.0 - Windows æœ¬æœºæœåŠ¡ç®¡ç†å·¥å…·
-REM ç”¨æ³•ï¼šå³é”®ã€Œä»¥ç®¡ç†å‘˜èº«ä»½è¿è¡Œã€ï¼ŒæŒ‰èœå•é€‰æ‹©æ“ä½œ
+REM WinRemote Agent V1.0.0 - Windows ±¾»ú·þÎñ¹ÜÀí¹¤¾ß
+REM ÓÃ·¨£ºÓÒ¼ü¡¸ÒÔ¹ÜÀíÔ±Éí·ÝÔËÐÐ¡¹£¬°´²Ëµ¥Ñ¡Ôñ²Ù×÷
 REM ============================================================
 
-title WinRemote Agent V1.0.0â€”â€”æœåŠ¡ç®¡ç†
+title WinRemote Agent V1.0.0¡ª¡ª·þÎñ¹ÜÀí
 
 :menu
 cls
 echo.
-echo â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-echo â•‘   WinRemote Agent V1.0.0 æœåŠ¡ç®¡ç†å·¥å…·      â•‘
-echo â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+echo ¨X==========================================¨[
+echo ¨U   WinRemote Agent V1.0.0 ·þÎñ¹ÜÀí¹¤¾ß      ¨U
+echo ¨^==========================================¨a
 echo.
 
-REM æ£€æŸ¥æœåŠ¡çŠ¶æ€
+REM ¼ì²é·þÎñ×´Ì¬
 nssm status WinRemoteAgent >nul 2>&1
 if errorlevel 1 (
-    echo  ðŸ“Š å½“å‰çŠ¶æ€: æœåŠ¡æœªå®‰è£…
+    echo  [INFO] µ±Ç°×´Ì¬: ·þÎñÎ´°²×°
 ) else (
-    for /f "tokens=*" %%a in ('nssm status WinRemoteAgent 2^>nul') do echo  ðŸ“Š å½“å‰çŠ¶æ€: %%a
+    for /f "tokens=*" %%a in ('nssm status WinRemoteAgent 2^>nul') do echo  [INFO] µ±Ç°×´Ì¬: %%a
 )
 
 echo.
-echo  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-echo  â”‚  [1] å¯åŠ¨ Agent      [2] åœæ­¢ Agent     â”‚
-echo  â”‚  [3] é‡å¯ Agent      [4] æŸ¥çœ‹çŠ¶æ€      â”‚
-echo  â”‚  [5] å®‰è£…æœåŠ¡        [6] å¸è½½æœåŠ¡      â”‚
-echo  â”‚  [7] æŸ¥çœ‹æ—¥å¿—        [8] ç¼–è¾‘é…ç½®      â”‚
-echo  â”‚  [9] æŸ¥çœ‹å®žæ—¶è¾“å‡º    [0] é€€å‡º          â”‚
-echo  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+echo  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
+echo  ©¦  [1] Æô¶¯ Agent      [2] Í£Ö¹ Agent     ©¦
+echo  ©¦  [3] ÖØÆô Agent      [4] ²é¿´×´Ì¬      ©¦
+echo  ©¦  [5] °²×°·þÎñ        [6] Ð¶ÔØ·þÎñ      ©¦
+echo  ©¦  [7] ²é¿´ÈÕÖ¾        [8] ±à¼­ÅäÖÃ      ©¦
+echo  ©¦  [9] ²é¿´ÊµÊ±Êä³ö    [0] ÍË³ö          ©¦
+echo  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
 echo.
 
 set "choice="
-set /p "choice=è¯·é€‰æ‹©æ“ä½œ [0-9]: "
+set /p "choice=ÇëÑ¡Ôñ²Ù×÷ [0-9]: "
 
 if "%choice%"=="" goto menu
 if "%choice%"=="0" goto :exit
@@ -53,12 +53,12 @@ goto menu
 
 :start
 echo.
-echo â–¶ æ­£åœ¨å¯åŠ¨ WinRemoteAgent...
+echo > ÕýÔÚÆô¶¯ WinRemoteAgent...
 nssm start WinRemoteAgent 2>nul
 if errorlevel 1 (
-    echo âš ï¸ å¯åŠ¨å¤±è´¥ï¼Œå¯èƒ½æœåŠ¡æœªå®‰è£…ã€‚è¯·å…ˆé€‰ [5] å®‰è£…ã€‚
+    echo [WARN] Æô¶¯Ê§°Ü£¬¿ÉÄÜ·þÎñÎ´°²×°¡£ÇëÏÈÑ¡ [5] °²×°¡£
 ) else (
-    echo âœ… å¯åŠ¨å‘½ä»¤å·²å‘é€
+    echo [OK] Æô¶¯ÃüÁîÒÑ·¢ËÍ
     timeout /t 2 /nobreak >nul
     nssm status WinRemoteAgent
 )
@@ -68,12 +68,12 @@ goto menu
 
 :stop
 echo.
-echo â¹ï¸ æ­£åœ¨åœæ­¢ WinRemoteAgent...
+echo [STOP] ÕýÔÚÍ£Ö¹ WinRemoteAgent...
 nssm stop WinRemoteAgent 2>nul
 if errorlevel 1 (
-    echo âš ï¸ åœæ­¢å¤±è´¥ï¼Œå¯èƒ½æœåŠ¡æœªå®‰è£…æˆ–æœªè¿è¡Œã€‚
+    echo [WARN] Í£Ö¹Ê§°Ü£¬¿ÉÄÜ·þÎñÎ´°²×°»òÎ´ÔËÐÐ¡£
 ) else (
-    echo âœ… åœæ­¢å‘½ä»¤å·²å‘é€
+    echo [OK] Í£Ö¹ÃüÁîÒÑ·¢ËÍ
     timeout /t 2 /nobreak >nul
     nssm status WinRemoteAgent
 )
@@ -83,12 +83,12 @@ goto menu
 
 :restart
 echo.
-echo ðŸ”„ æ­£åœ¨é‡å¯ WinRemoteAgent...
+echo [RESTART] ÕýÔÚÖØÆô WinRemoteAgent...
 nssm restart WinRemoteAgent 2>nul
 if errorlevel 1 (
-    echo âš ï¸ é‡å¯å¤±è´¥ï¼Œå¯èƒ½æœåŠ¡æœªå®‰è£…ã€‚è¯·å…ˆé€‰ [5] å®‰è£…ã€‚
+    echo [WARN] ÖØÆôÊ§°Ü£¬¿ÉÄÜ·þÎñÎ´°²×°¡£ÇëÏÈÑ¡ [5] °²×°¡£
 ) else (
-    echo âœ… é‡å¯å‘½ä»¤å·²å‘é€
+    echo [OK] ÖØÆôÃüÁîÒÑ·¢ËÍ
     timeout /t 3 /nobreak >nul
     nssm status WinRemoteAgent
 )
@@ -98,88 +98,88 @@ goto menu
 
 :status
 echo.
-echo ðŸ“Š æœåŠ¡è¯¦ç»†ä¿¡æ¯ï¼š
-echo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-nssm status WinRemoteAgent 2>nul || echo æœåŠ¡æœªå®‰è£…
+echo [INFO] ·þÎñÏêÏ¸ÐÅÏ¢£º
+echo ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+nssm status WinRemoteAgent 2>nul || echo ·þÎñÎ´°²×°
 echo.
-echo â”€â”€ é…ç½®æ‘˜è¦ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-nssm get WinRemoteAgent Application 2>nul || echo æ— 
-nssm get WinRemoteAgent AppDirectory 2>nul || echo æ— 
+echo ©¤©¤ ÅäÖÃÕªÒª ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+nssm get WinRemoteAgent Application 2>nul || echo ÎÞ
+nssm get WinRemoteAgent AppDirectory 2>nul || echo ÎÞ
 echo.
 pause
 goto menu
 
 :install
 echo.
-echo â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-echo â•‘  å®‰è£… WinRemoteAgent ç³»ç»ŸæœåŠ¡             â•‘
-echo â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+echo ¨X==========================================¨[
+echo ¨U  °²×° WinRemoteAgent ÏµÍ³·þÎñ             ¨U
+echo ¨^==========================================¨a
 echo.
 
-REM æ£€æŸ¥ nssm æ˜¯å¦å¯ç”¨
+REM ¼ì²é nssm ÊÇ·ñ¿ÉÓÃ
 where nssm >nul 2>&1
 if errorlevel 1 (
-    echo âš ï¸ æœªæ‰¾åˆ° nssm.exe
-    echo    è¯·å…ˆå°† nssm.exe æ”¾å…¥ C:\Windows\System32\ æˆ–å½“å‰ç›®å½•
-    echo    ä¸‹è½½åœ°å€ï¼šhttps://nssm.cc/release/nssm-2.24.zip
-    echo    è§£åŽ‹åŽå¤åˆ¶ win64\nssm.exe åˆ° C:\Windows\
+    echo [WARN] Î´ÕÒµ½ nssm.exe
+    echo    ÇëÏÈ½« nssm.exe ·ÅÈë C:\Windows\System32\ »òµ±Ç°Ä¿Â¼
+    echo    ÏÂÔØµØÖ·£ºhttps://nssm.cc/release/nssm-2.24.zip
+    echo    ½âÑ¹ºó¸´ÖÆ win64\nssm.exe µ½ C:\Windows\
     pause
     goto menu
 )
 
-REM å®šä½ agent ç›®å½•å’Œè„šæœ¬
+REM ¶¨Î» agent Ä¿Â¼ºÍ½Å±¾
 set "AGENT_DIR=%~dp0"
 if not exist "%AGENT_DIR%winremote_agent.py" (
-    echo âš ï¸ æœªæ‰¾åˆ° winremote_agent.py
-    echo    è¯·ç¡®ä¿æ­¤ bat ä¸Ž winremote_agent.py åœ¨åŒä¸€ç›®å½•
-    echo    å½“å‰ç›®å½•ï¼š%AGENT_DIR%
+    echo [WARN] Î´ÕÒµ½ winremote_agent.py
+    echo    ÇëÈ·±£´Ë bat Óë winremote_agent.py ÔÚÍ¬Ò»Ä¿Â¼
+    echo    µ±Ç°Ä¿Â¼£º%AGENT_DIR%
     pause
     goto menu
 )
 
-REM æ£€æŸ¥æ˜¯å¦å·²å®‰è£…
+REM ¼ì²éÊÇ·ñÒÑ°²×°
 nssm status WinRemoteAgent >nul 2>&1
 if not errorlevel 1 (
-    echo âš ï¸ æœåŠ¡å·²å­˜åœ¨ï¼Œè¯·å…ˆå¸è½½ï¼ˆé€‰ [6]ï¼‰å†é‡æ–°å®‰è£…
+    echo [WARN] ·þÎñÒÑ´æÔÚ£¬ÇëÏÈÐ¶ÔØ£¨Ñ¡ [6]£©ÔÙÖØÐÂ°²×°
     pause
     goto menu
 )
 
-REM æ£€æŸ¥ run_agent.bat æ˜¯å¦å­˜åœ¨
+REM ¼ì²é run_agent.bat ÊÇ·ñ´æÔÚ
 set "RUN_SCRIPT=%AGENT_DIR%run_agent.bat"
 if not exist "%RUN_SCRIPT%" (
-    echo âš ï¸ æœªæ‰¾åˆ° run_agent.bat å¯åŠ¨è„šæœ¬
-    echo    è¯·å…ˆè¿è¡Œ install_agent.bat è¿›è¡Œäº¤äº’å¼éƒ¨ç½²
+    echo [WARN] Î´ÕÒµ½ run_agent.bat Æô¶¯½Å±¾
+    echo    ÇëÏÈÔËÐÐ install_agent.bat ½øÐÐ½»»¥Ê½²¿Êð
     echo.
-    echo    æˆ–è€…çŽ°åœ¨æ‰‹åŠ¨åˆ›å»ºï¼Ÿ[Y/n]
+    echo    »òÕßÏÖÔÚÊÖ¶¯´´½¨£¿[Y/n]
     set /p "CREATE_NOW="
     if /i "!CREATE_NOW!"=="n" goto menu
 
     echo.
-    echo   â•â• å¿«é€Ÿåˆ›å»º run_agent.bat â•â•
+    echo   == ¿ìËÙ´´½¨ run_agent.bat ==
     set "SERVER_URL="
     set "TOKEN="
     set "AGENT_ID="
 
-    set /p "SERVER_URL=è¯·è¾“å…¥æœåŠ¡å™¨ WebSocket åœ°å€ [é»˜è®¤: ws://127.0.0.1:1024/w]: "
+    set /p "SERVER_URL=ÇëÊäÈë·þÎñÆ÷ WebSocket µØÖ· [Ä¬ÈÏ: ws://127.0.0.1:1024/w]: "
     if "!SERVER_URL!"=="" set SERVER_URL=ws://127.0.0.1:1024/w
 
     :admin_input_token
-    set /p "TOKEN=è¯·è¾“å…¥å…±äº« Token: "
+    set /p "TOKEN=ÇëÊäÈë¹²Ïí Token: "
     if "!TOKEN!"=="" (
-        echo   âŒ Token ä¸èƒ½ä¸ºç©ºï¼
+        echo   [FAIL] Token ²»ÄÜÎª¿Õ£¡
         goto admin_input_token
     )
     if "!TOKEN!"=="change-me" (
-        echo   âŒ ä¸èƒ½ä½¿ç”¨é»˜è®¤å€¼ï¼
+        echo   [FAIL] ²»ÄÜÊ¹ÓÃÄ¬ÈÏÖµ£¡
         goto admin_input_token
     )
-    if "!TOKEN!"=="è¯·æ¢æˆä½ çš„é•¿éšæœºToken" (
-        echo   âŒ ä¸èƒ½ä½¿ç”¨å ä½æ–‡æœ¬ï¼
+    if "!TOKEN!"=="Çë»»³ÉÄãµÄ³¤Ëæ»úToken" (
+        echo   [FAIL] ²»ÄÜÊ¹ÓÃÕ¼Î»ÎÄ±¾£¡
         goto admin_input_token
     )
 
-    set /p "AGENT_ID=è¯·è¾“å…¥ Agent åç§° [é»˜è®¤: my-pc-001]: "
+    set /p "AGENT_ID=ÇëÊäÈë Agent Ãû³Æ [Ä¬ÈÏ: my-pc-001]: "
     if "!AGENT_ID!"=="" set AGENT_ID=my-pc-001
 
     echo @echo off > "%RUN_SCRIPT%"
@@ -188,11 +188,11 @@ if not exist "%RUN_SCRIPT%" (
     echo cd /d "%AGENT_DIR%" >> "%RUN_SCRIPT%"
     echo python winremote_agent.py --server !SERVER_URL! --token !TOKEN! --agent-id !AGENT_ID! >> "%RUN_SCRIPT%"
 
-    echo   âœ… run_agent.bat å·²åˆ›å»º
+    echo   [OK] run_agent.bat ÒÑ´´½¨
 )
 
 echo.
-echo ðŸ“¦ æ­£åœ¨æ³¨å†Œ Windows æœåŠ¡...
+echo [INSTALL] ÕýÔÚ×¢²á Windows ·þÎñ...
 nssm install WinRemoteAgent "%RUN_SCRIPT%" || goto :install_fail
 nssm set WinRemoteAgent AppDirectory "%AGENT_DIR%" || goto :install_fail
 nssm set WinRemoteAgent DisplayName "WinRemote Agent V1.0.0" || goto :install_fail
@@ -205,14 +205,14 @@ nssm set WinRemoteAgent AppRotateFiles 1 || goto :install_fail
 nssm set WinRemoteAgent AppRotateBytes 1048576 || goto :install_fail
 
 echo.
-echo âœ… æœåŠ¡æ³¨å†ŒæˆåŠŸï¼
+echo [OK] ·þÎñ×¢²á³É¹¦£¡
 echo.
-echo â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-echo â”‚  Agent ç›®å½• : %AGENT_DIR%                     â”‚
-echo â”‚  å¯åŠ¨è„šæœ¬   : %RUN_SCRIPT%                    â”‚
-echo â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+echo ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
+echo ©¦  Agent Ä¿Â¼ : %AGENT_DIR%                     ©¦
+echo ©¦  Æô¶¯½Å±¾   : %RUN_SCRIPT%                    ©¦
+echo ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
 echo.
-echo æ˜¯å¦ç«‹å³å¯åŠ¨æœåŠ¡ï¼Ÿ[Y/n]
+echo ÊÇ·ñÁ¢¼´Æô¶¯·þÎñ£¿[Y/n]
 set "ans="
 set /p "ans="
 if /i "!ans!"=="n" goto menu
@@ -225,39 +225,39 @@ goto menu
 
 :install_fail
 echo.
-echo âŒ æœåŠ¡æ³¨å†Œå¤±è´¥ï¼
-echo    Â· è¯·ç¡®è®¤ä»¥ç®¡ç†å‘˜èº«ä»½è¿è¡Œ
-echo    Â· nssm.exe æ˜¯å¦å¯ç”¨ï¼šwhere nssm
-echo    Â· run_agent.bat æ˜¯å¦æœ‰æ•ˆï¼štype "%RUN_SCRIPT%"
+echo [FAIL] ·þÎñ×¢²áÊ§°Ü£¡
+echo    ¡¤ ÇëÈ·ÈÏÒÔ¹ÜÀíÔ±Éí·ÝÔËÐÐ
+echo    ¡¤ nssm.exe ÊÇ·ñ¿ÉÓÃ£ºwhere nssm
+echo    ¡¤ run_agent.bat ÊÇ·ñÓÐÐ§£ºtype "%RUN_SCRIPT%"
 pause
 goto menu
 
 :uninstall
 echo.
-echo âš ï¸ ç¡®è®¤å¸è½½ WinRemoteAgent æœåŠ¡ï¼Ÿ[y/N]
+echo [WARN] È·ÈÏÐ¶ÔØ WinRemoteAgent ·þÎñ£¿[y/N]
 set "ans="
 set /p "ans="
 if /i not "!ans!"=="y" (
-    echo å·²å–æ¶ˆ
+    echo ÒÑÈ¡Ïû
     pause
     goto menu
 )
 echo.
-echo ðŸ—‘ï¸ æ­£åœ¨å¸è½½æœåŠ¡...
+echo [REMOVE] ÕýÔÚÐ¶ÔØ·þÎñ...
 nssm stop WinRemoteAgent 2>nul
 timeout /t 1 /nobreak >nul
 nssm remove WinRemoteAgent confirm 2>nul
 if errorlevel 1 (
-    echo âš ï¸ å¸è½½å¯èƒ½æœªå®Œå…¨æˆåŠŸï¼Œè¯·æ£€æŸ¥
+    echo [WARN] Ð¶ÔØ¿ÉÄÜÎ´ÍêÈ«³É¹¦£¬Çë¼ì²é
 ) else (
-    echo âœ… æœåŠ¡å·²å¸è½½
+    echo [OK] ·þÎñÒÑÐ¶ÔØ
     echo.
-    echo æ˜¯å¦åˆ é™¤å¯åŠ¨è„šæœ¬ run_agent.batï¼Ÿ[y/N]
+    echo ÊÇ·ñÉ¾³ýÆô¶¯½Å±¾ run_agent.bat£¿[y/N]
     set "ans="
     set /p "ans="
     if /i "!ans!"=="y" (
         del /f /q "%AGENT_DIR%run_agent.bat" 2>nul
-        echo âœ… å¯åŠ¨è„šæœ¬å·²åˆ é™¤
+        echo [OK] Æô¶¯½Å±¾ÒÑÉ¾³ý
     )
 )
 echo.
@@ -266,22 +266,22 @@ goto menu
 
 :logs
 echo.
-echo ðŸ“‹ Agent æ—¥å¿—æ–‡ä»¶:
-echo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+echo [LOG] Agent ÈÕÖ¾ÎÄ¼þ:
+echo ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 set "AGENT_DIR=%~dp0"
 if exist "%AGENT_DIR%agent_stdout.log" (
     echo.
-    echo â”€â”€ stdoutï¼ˆæœ€è¿‘ 30 è¡Œï¼‰â”€â”€
+    echo ©¤©¤ stdout£¨×î½ü 30 ÐÐ£©©¤©¤
     powershell -Command "Get-Content '%AGENT_DIR%agent_stdout.log' -Tail 30"
 ) else (
-    echo    agent_stdout.log ä¸å­˜åœ¨
+    echo    agent_stdout.log ²»´æÔÚ
 )
 echo.
 if exist "%AGENT_DIR%agent_stderr.log" (
-    echo â”€â”€ stderrï¼ˆæœ€è¿‘ 30 è¡Œï¼‰â”€â”€
+    echo ©¤©¤ stderr£¨×î½ü 30 ÐÐ£©©¤©¤
     powershell -Command "Get-Content '%AGENT_DIR%agent_stderr.log' -Tail 30"
 ) else (
-    echo    agent_stderr.log ä¸å­˜åœ¨
+    echo    agent_stderr.log ²»´æÔÚ
 )
 echo.
 pause
@@ -289,17 +289,17 @@ goto menu
 
 :config
 echo.
-echo âš™ï¸ ç¼–è¾‘ Agent é…ç½®
-echo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+echo [CFG] ±à¼­ Agent ÅäÖÃ
+echo ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 set "AGENT_DIR=%~dp0"
 set "RUN_SCRIPT=%AGENT_DIR%run_agent.bat"
 if exist "%RUN_SCRIPT%" (
-    echo æ­£åœ¨æ‰“å¼€: %RUN_SCRIPT%
+    echo ÕýÔÚ´ò¿ª: %RUN_SCRIPT%
     notepad "%RUN_SCRIPT%"
     echo.
-    echo âš ï¸ ä¿®æ”¹é…ç½®åŽè¯·é‡å¯æœåŠ¡ï¼ˆé€‰ [3]ï¼‰ä½¿æ›´æ”¹ç”Ÿæ•ˆ
+    echo [WARN] ÐÞ¸ÄÅäÖÃºóÇëÖØÆô·þÎñ£¨Ñ¡ [3]£©Ê¹¸ü¸ÄÉúÐ§
 ) else (
-    echo âš ï¸ æœªæ‰¾åˆ° run_agent.batï¼Œè¯·å…ˆå®‰è£…æœåŠ¡ï¼ˆé€‰ [5]ï¼‰
+    echo [WARN] Î´ÕÒµ½ run_agent.bat£¬ÇëÏÈ°²×°·þÎñ£¨Ñ¡ [5]£©
 )
 echo.
 pause
@@ -307,20 +307,20 @@ goto menu
 
 :tail
 echo.
-echo ðŸ“¡ å®žæ—¶æ—¥å¿—ï¼ˆæŒ‰ Ctrl+C é€€å‡ºï¼‰
-echo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+echo [TAIL] ÊµÊ±ÈÕÖ¾£¨°´ Ctrl+C ÍË³ö£©
+echo ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 set "AGENT_DIR=%~dp0"
 if exist "%AGENT_DIR%agent_stdout.log" (
     powershell -Command "Get-Content '%AGENT_DIR%agent_stdout.log' -Wait -Tail 10"
 ) else (
-    echo âš ï¸ æ—¥å¿—æ–‡ä»¶ä¸å­˜åœ¨ï¼ŒAgent å¯èƒ½æœªå¯åŠ¨
+    echo [WARN] ÈÕÖ¾ÎÄ¼þ²»´æÔÚ£¬Agent ¿ÉÄÜÎ´Æô¶¯
     pause
 )
 goto menu
 
 :exit
 echo.
-echo å†è§ï¼
+echo ÔÙ¼û£¡
 timeout /t 1 /nobreak >nul
 endlocal
 exit /b 0
