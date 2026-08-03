@@ -99,21 +99,28 @@ try:
     from astrbot.api import AstrBotConfig
     from astrbot.api import logger as ab_logger
     from astrbot.api.event import filter as astr_filter
-    from astrbot.api.star import Context, Star
-    from astrbot.core.star.star_handler import (
-        CommandType,
-        EventType,
-        StarHandlerMetadata,
-        StarHandlerType,
-    )
-    from astrbot.core.star.star_tools import register
+    from astrbot.api.star import Context, Star, register
+    from astrbot.core.star.register.star_handler import register_command
 
     _HAS_ASTRBOT = True
+
+    # v4.26.8: CommandType / StarHandlerType 模块中已移除，用 fallback
+    class _EnumFallback:
+        def __getattr__(self, name):
+            return name
+
+    CommandType = _EnumFallback()
+    StarHandlerType = _EnumFallback()
 except ImportError:  # pragma: no cover
     AstrBotConfig = dict
     ab_logger = None
     Context = Any
     Star = object
+
+    def register_command(*a, **kw):
+        def deco(func):
+            return func
+        return deco
 
     def register(*a, **kw):
         def deco(cls):
@@ -775,13 +782,7 @@ class WinRemotePlugin(Star):
         return asyncio.get_event_loop().run_until_complete(self.pwd_guard.check(qq, pwd, expected))
 
     # -- QQ 指令 --
-    @StarHandlerMetadata(
-        handler_type=StarHandlerType.COMMAND,
-        command="win",
-        command_type=CommandType.ALL,
-        event_type=EventType.MESSAGE_ALL,
-        description="WinRemote 远程控制指令入口",
-    )
+    @register_command(command_name="win", desc="WinRemote 远程控制指令入口")
     async def cmd_win(self, handler, event):
         user = event.get_sender_id() or "unknown"
         msg = event.get_message_str().strip()
