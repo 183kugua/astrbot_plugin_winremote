@@ -14,6 +14,8 @@ V0.9.9 变更：
 这样既避免了 exec() 带来的安全审计风险，又保持了完整的公共 API 导出。
 """
 
+from typing import Any
+
 __is_shell__ = True
 
 # 显式导出列表
