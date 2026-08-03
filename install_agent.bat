@@ -1,71 +1,71 @@
-@echo off
+ï»¿@echo off
 setlocal EnableDelayedExpansion
-
+chcp 65001 >nul
 
 REM ============================================================
-REM WinRemote Agent V1.0.0 - Windows ½»»¥Ê½²¿Êð½Å±¾
-REM ÓÃ·¨£ºÓÒ¼ü¡¸ÒÔ¹ÜÀíÔ±Éí·ÝÔËÐÐ¡¹
+REM WinRemote Agent V1.0.0 - Windows äº¤äº’å¼éƒ¨ç½²è„šæœ¬
+REM ç”¨æ³•ï¼šå³é”®ã€Œä»¥ç®¡ç†å‘˜èº«ä»½è¿è¡Œã€
 REM ============================================================
 
-title WinRemote Agent V1.0.0¡ª¡ª°²×°Ïòµ¼
+title WinRemote Agent V1.0.0â€”â€”å®‰è£…å‘å¯¼
 
 echo.
-echo ¨X==========================================¨[
-echo ¨U   WinRemote Agent V1.0.0 ½»»¥Ê½°²×°Ïòµ¼   ¨U
-echo ¨^==========================================¨a
+echo â•”==========================================â•—
+echo â•‘   WinRemote Agent V1.0.0 äº¤äº’å¼å®‰è£…å‘å¯¼   â•‘
+echo â•š==========================================â•
 echo.
 
 REM ============================================================
-REM Step 1£ºÊÕ¼¯Á¬½ÓÅäÖÃ
+REM Step 1ï¼šæ”¶é›†è¿žæŽ¥é…ç½®
 REM ============================================================
-echo ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-echo ©¦  [1/4] Á¬½ÓÅäÖÃ                          ©¦
-echo ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+echo â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+echo â”‚  [1/4] è¿žæŽ¥é…ç½®                          â”‚
+echo â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 echo.
 
 :input_server
 set "SERVER_URL="
-set /p "SERVER_URL=ÇëÊäÈë·þÎñÆ÷ WebSocket µØÖ· [Ä¬ÈÏ: ws://127.0.0.1:1024/w]: "
+set /p "SERVER_URL=è¯·è¾“å…¥æœåŠ¡å™¨ WebSocket åœ°å€ [é»˜è®¤: ws://127.0.0.1:1024/w]: "
 if "!SERVER_URL!"=="" set SERVER_URL=ws://127.0.0.1:1024/w
-echo   [OK] Server URL : !SERVER_URL!
+echo   âœ… Server URL : !SERVER_URL!
 echo.
 
 :input_token
 set "TOKEN="
-echo ¨X==========================================¨[
-echo ¨U        Token ÉèÖÃ                        ¨U
-echo ¨^==========================================¨a
+echo â•”==========================================â•—
+echo â•‘        Token è®¾ç½®                        â•‘
+echo â•š==========================================â•
 echo.
-echo   [1] ÊÖ¶¯ÊäÈë Token
-echo   [2] Ò»¼üÉú³ÉËæ»ú Token ^(ÍÆ¼ö^)
+echo   [1] æ‰‹åŠ¨è¾“å…¥ Token
+echo   [2] ä¸€é”®ç”Ÿæˆéšæœº Token ^(æŽ¨è^)
 echo.
 set "tok_choice="
-set /p "tok_choice=ÇëÑ¡Ôñ [1-2£¬Ä¬ÈÏ 2]: "
+set /p "tok_choice=è¯·é€‰æ‹© [1-2ï¼Œé»˜è®¤ 2]: "
 if "!tok_choice!"=="" set tok_choice=2
 
 if "!tok_choice!"=="2" (
     echo.
-    echo   [KEY] ÕýÔÚÉú³É 32 Î»Ëæ»ú Token...
+    echo   ðŸ” æ­£åœ¨ç”Ÿæˆ 32 ä½éšæœº Token...
     python -c "import secrets;print(secrets.token_hex(32))" > "%TEMP%\wr_token.txt" 2>nul
     if errorlevel 1 (
-        echo   [WARN] Python Î´°²×°»ò²»¿ÉÓÃ£¬ÇÐ»»ÎªÊÖ¶¯ÊäÈë
+        echo   âš ï¸ Python æœªå®‰è£…æˆ–ä¸å¯ç”¨ï¼Œåˆ‡æ¢ä¸ºæ‰‹åŠ¨è¾“å…¥
         goto manual_token
     )
     set /p TOKEN=<"%TEMP%\wr_token.txt"
     del "%TEMP%\wr_token.txt" 2>nul
     echo.
-    echo   [OK] Ëæ»ú Token ÒÑÉú³É£¡
+    echo   âœ… éšæœº Token å·²ç”Ÿæˆï¼
     echo.
-    echo   ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-    echo   ©¦ !TOKEN! ©¦
-    echo   ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+    echo   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    echo   â”‚ !TOKEN! â”‚
+    echo   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
     echo.
-    echo   [WARN] ÇëÁ¢¼´¸´ÖÆ±£´æ´Ë Token£¡·þÎñÆ÷¶ËÐèÒªÅäÖÃÏàÍ¬µÄÖµ¡£
+    echo   âš ï¸ è¯·ç«‹å³å¤åˆ¶ä¿å­˜æ­¤ Tokenï¼æœåŠ¡å™¨ç«¯éœ€è¦é…ç½®ç›¸åŒçš„å€¼ã€‚
     echo.
 
-    set /p "TOKEN_CONFIRM=Èç¹ûÒÑ±£´æ£¬ÊäÈë Y ¼ÌÐø: "
+    set /p "TOKEN_CONFIRM=å¦‚æžœå·²ä¿å­˜ï¼Œè¾“å…¥ Y ç»§ç»­: "
     if /i not "!TOKEN_CONFIRM!"=="y" (
-        echo   ÇëÏÈ¸´ÖÆ±£´æ Token ºóÖØÐÂÔËÐÐ½Å±¾ß÷~
+        echo   è¯·å…ˆå¤åˆ¶ä¿å­˜ Token åŽé‡æ–°è¿è¡Œè„šæœ¬å–µ~
         pause
         exit /b 1
     )
@@ -73,151 +73,151 @@ if "!tok_choice!"=="2" (
 ) else (
     :manual_token_input
     echo.
-    echo   [WARN] Token ½¨Òé ¡Ý16 Î»Ëæ»ú×Ö·û£¡
-    echo     ÍÆ¼öÉú³É·½Ê½^: python -c "import secrets;print(secrets.token_hex(32))"
-    echo     »òÔÚÏßÉú³É: https://www.random.org/strings/
+    echo   âš ï¸ Token å»ºè®® â‰¥16 ä½éšæœºå­—ç¬¦ï¼
+    echo     æŽ¨èç”Ÿæˆæ–¹å¼^: python -c "import secrets;print(secrets.token_hex(32))"
+    echo     æˆ–åœ¨çº¿ç”Ÿæˆ: https://www.random.org/strings/
     echo.
-    set /p "TOKEN=ÇëÊäÈë¹²Ïí Token: "
+    set /p "TOKEN=è¯·è¾“å…¥å…±äº« Token: "
     if "!TOKEN!"=="" (
-        echo   [FAIL] Token ²»ÄÜÎª¿Õ£¡
+        echo   âŒ Token ä¸èƒ½ä¸ºç©ºï¼
         goto manual_token_input
     )
     if "!TOKEN!"=="change-me" (
-        echo   [FAIL] ²»ÄÜÊ¹ÓÃÄ¬ÈÏÖµ£¬ÇëÊäÈëÕæÊµ Token£¡
+        echo   âŒ ä¸èƒ½ä½¿ç”¨é»˜è®¤å€¼ï¼Œè¯·è¾“å…¥çœŸå®ž Tokenï¼
         goto manual_token_input
     )
     if "!TOKEN!"=="change-me-to-a-long-random-token" (
-        echo   [FAIL] ²»ÄÜÊ¹ÓÃÄ¬ÈÏÖµ£¬ÇëÊäÈëÕæÊµ Token£¡
+        echo   âŒ ä¸èƒ½ä½¿ç”¨é»˜è®¤å€¼ï¼Œè¯·è¾“å…¥çœŸå®ž Tokenï¼
         goto manual_token_input
     )
-    if "!TOKEN!"=="Çë»»³ÉÄãµÄ³¤Ëæ»úToken" (
-        echo   [FAIL] ²»ÄÜÊ¹ÓÃÕ¼Î»ÎÄ±¾£¬ÇëÊäÈëÕæÊµ Token£¡
+    if "!TOKEN!"=="è¯·æ¢æˆä½ çš„é•¿éšæœºToken" (
+        echo   âŒ ä¸èƒ½ä½¿ç”¨å ä½æ–‡æœ¬ï¼Œè¯·è¾“å…¥çœŸå®ž Tokenï¼
         goto manual_token_input
     )
     call :check_len "!TOKEN!" tok_len
     if !tok_len! LSS 16 (
-        echo   [WARN] Token ³¤¶È²»×ã 16 Î»£¨µ±Ç° !tok_len! Î»£©£¬°²È«ÐÔ½ÏµÍ£¡
-        echo   ½¨ÒéÊ¹ÓÃ ¡Ý16 Î»Ëæ»ú×Ö·û´®¡£
-        set /p "SHORT_OK=ÈÔÈ»Ê¹ÓÃ£¿[y/N]: "
+        echo   âš ï¸ Token é•¿åº¦ä¸è¶³ 16 ä½ï¼ˆå½“å‰ !tok_len! ä½ï¼‰ï¼Œå®‰å…¨æ€§è¾ƒä½Žï¼
+        echo   å»ºè®®ä½¿ç”¨ â‰¥16 ä½éšæœºå­—ç¬¦ä¸²ã€‚
+        set /p "SHORT_OK=ä»ç„¶ä½¿ç”¨ï¼Ÿ[y/N]: "
         if /i not "!SHORT_OK!"=="y" goto manual_token_input
     )
-    echo   [OK] Token ÒÑÈ·ÈÏ£¨³¤¶È !tok_len! Î»£©
+    echo   âœ… Token å·²ç¡®è®¤ï¼ˆé•¿åº¦ !tok_len! ä½ï¼‰
 )
 
 :done_token
 :input_agent_id
 set "AGENT_ID="
 echo.
-set /p "AGENT_ID=ÇëÊäÈë Agent Ãû³Æ [Ä¬ÈÏ: my-pc-001]: "
+set /p "AGENT_ID=è¯·è¾“å…¥ Agent åç§° [é»˜è®¤: my-pc-001]: "
 if "!AGENT_ID!"=="" set AGENT_ID=my-pc-001
-echo   [OK] Agent ID : !AGENT_ID!
+echo   âœ… Agent ID : !AGENT_ID!
 
 echo.
-echo ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-echo ©¦  ÅäÖÃÈ·ÈÏ                                      ©¦
-echo ©¦  Server   : !SERVER_URL!                      ©¦
-echo ©¦  Token    : [ÒÑÊäÈë]                            ©¦
-echo ©¦  Agent ID : !AGENT_ID!                         ©¦
-echo ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+echo â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+echo â”‚  é…ç½®ç¡®è®¤                                      â”‚
+echo â”‚  Server   : !SERVER_URL!                      â”‚
+echo â”‚  Token    : [å·²è¾“å…¥]                            â”‚
+echo â”‚  Agent ID : !AGENT_ID!                         â”‚
+echo â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 echo.
-set /p "CONFIRM=È·ÈÏÒÔÉÏÅäÖÃ£¿[Y/n]: "
+set /p "CONFIRM=ç¡®è®¤ä»¥ä¸Šé…ç½®ï¼Ÿ[Y/n]: "
 if /i "!CONFIRM!"=="n" (
-    echo ÖØÐÂÊäÈë...
+    echo é‡æ–°è¾“å…¥...
     goto input_server
 )
 
 echo.
-echo ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-echo ©¦  [2/4] ¼ì²é Python »·¾³                   ©¦
-echo ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+echo â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+echo â”‚  [2/4] æ£€æŸ¥ Python çŽ¯å¢ƒ                   â”‚
+echo â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 echo.
 where python >nul 2>&1
 if errorlevel 1 (
-    echo [FAIL] Î´ÕÒµ½ Python£¡ÇëÏÈ°²×° Python 3.9+
-    echo    ÏÂÔØµØÖ·£ºhttps://www.python.org/downloads/
+    echo âŒ æœªæ‰¾åˆ° Pythonï¼è¯·å…ˆå®‰è£… Python 3.9+
+    echo    ä¸‹è½½åœ°å€ï¼šhttps://www.python.org/downloads/
     pause
     exit /b 1
 )
-for /f "tokens=2" %%v in ('python --version 2^>^&1') do echo [OK] ÒÑ¼ì²âµ½ Python %%v
+for /f "tokens=2" %%v in ('python --version 2^>^&1') do echo âœ… å·²æ£€æµ‹åˆ° Python %%v
 echo.
 
-echo ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-echo ©¦  [3/4] °²×° Python ÒÀÀµ                   ©¦
-echo ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+echo â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+echo â”‚  [3/4] å®‰è£… Python ä¾èµ–                   â”‚
+echo â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 echo.
-echo   ¼´½«°²×°£º
-echo     ¡¤ websocket-client
-echo     ¡¤ Pillow
-echo     ¡¤ pyautogui
+echo   å³å°†å®‰è£…ï¼š
+echo     Â· websocket-client
+echo     Â· Pillow
+echo     Â· pyautogui
 echo.
-echo [WARN] Èç¹û°²×°Ê§°Ü£¬ÇëÊÖ¶¯Ö´ÐÐ£º
+echo âš ï¸ å¦‚æžœå®‰è£…å¤±è´¥ï¼Œè¯·æ‰‹åŠ¨æ‰§è¡Œï¼š
 echo    pip install websocket-client pillow pyautogui
 echo.
-choice /c yn /n /m "ÊÇ·ñ¼ÌÐø°²×°£¿[y/n]: "
+choice /c yn /n /m "æ˜¯å¦ç»§ç»­å®‰è£…ï¼Ÿ[y/n]: "
 if errorlevel 2 (
-    echo [WARN] Ìø¹ýÒÀÀµ°²×°£¨ÐèÒªÊÖ¶¯°²×°ºóÔÙÔËÐÐ Agent£©
+    echo âš ï¸ è·³è¿‡ä¾èµ–å®‰è£…ï¼ˆéœ€è¦æ‰‹åŠ¨å®‰è£…åŽå†è¿è¡Œ Agentï¼‰
     goto skip_deps
 )
 echo.
 pip install websocket-client pillow pyautogui 2>&1 | findstr /i "error warning successfully already"
 if errorlevel 1 (
-    echo [WARN] pip °²×°¿ÉÄÜÓöµ½ÎÊÌâ£¬Çë¼ì²é´íÎóÐÅÏ¢
-    echo    ³£¼ûÔ­Òò£ºÍøÂçÎÊÌâ¡¢È¨ÏÞ²»×ã
-    echo    ÊÖ¶¯°²×°ÃüÁî£ºpip install websocket-client pillow pyautogui
+    echo âš ï¸ pip å®‰è£…å¯èƒ½é‡åˆ°é—®é¢˜ï¼Œè¯·æ£€æŸ¥é”™è¯¯ä¿¡æ¯
+    echo    å¸¸è§åŽŸå› ï¼šç½‘ç»œé—®é¢˜ã€æƒé™ä¸è¶³
+    echo    æ‰‹åŠ¨å®‰è£…å‘½ä»¤ï¼špip install websocket-client pillow pyautogui
     echo.
-    set /p "CONTINUE=ÊÇ·ñ¼ÌÐø£¿[y/N]: "
+    set /p "CONTINUE=æ˜¯å¦ç»§ç»­ï¼Ÿ[y/N]: "
     if /i not "!CONTINUE!"=="y" (
         pause
         exit /b 1
     )
 ) else (
-    echo [OK] ÒÀÀµ°²×°Íê³É
+    echo âœ… ä¾èµ–å®‰è£…å®Œæˆ
 )
 :skip_deps
 echo.
 
-echo ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-echo ©¦  [4/4] ´´½¨Æô¶¯½Å±¾                       ©¦
-echo ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+echo â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+echo â”‚  [4/4] åˆ›å»ºå¯åŠ¨è„šæœ¬                       â”‚
+echo â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 set "AGENT_DIR=%~dp0"
 set "START_SCRIPT=%AGENT_DIR%run_agent.bat"
 
 echo @echo off > "%START_SCRIPT%"
-echo chcp 65001 ^>nul >> "%START_SCRIPT%"
-echo title WinRemote Agent V1.0.0¡ª¡ª%AGENT_ID% >> "%START_SCRIPT%"
-echo cd /d "%AGENT_DIR%" >> "%START_SCRIPT%"
-echo python winremote_agent.py --server !SERVER_URL! --token !TOKEN! --agent-id !AGENT_ID! >> "%START_SCRIPT%"
+echo chcp 65001 ^>nul ðŸ“Œ "%START_SCRIPT%"
+echo title WinRemote Agent V1.0.0â€”â€”%AGENT_ID% ðŸ“Œ "%START_SCRIPT%"
+echo cd /d "%AGENT_DIR%" ðŸ“Œ "%START_SCRIPT%"
+echo python winremote_agent.py --server !SERVER_URL! --token !TOKEN! --agent-id !AGENT_ID! ðŸ“Œ "%START_SCRIPT%"
 
-echo [OK] Æô¶¯½Å±¾ÒÑ´´½¨: !START_SCRIPT!
+echo âœ… å¯åŠ¨è„šæœ¬å·²åˆ›å»º: !START_SCRIPT!
 echo.
-echo ©¤©¤ ÄÚÈÝÔ¤ÀÀ ©¤©¤
+echo â”€â”€ å†…å®¹é¢„è§ˆ â”€â”€
 type "%START_SCRIPT%"
-echo ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+echo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 echo.
-echo ¨X==========================================¨[
-echo ¨U            [OK] ²¿ÊðÍê³É£¡                   ¨U
-echo ¨d==========================================¨g
-echo ¨U  Agent ID  : !AGENT_ID!                    ¨U
-echo ¨U  Server    : !SERVER_URL!                  ¨U
-echo ¨^==========================================¨a
+echo â•”==========================================â•—
+echo â•‘            âœ… éƒ¨ç½²å®Œæˆï¼                   â•‘
+echo â• ==========================================â•£
+echo â•‘  Agent ID  : !AGENT_ID!                    â•‘
+echo â•‘  Server    : !SERVER_URL!                  â•‘
+echo â•š==========================================â•
 echo.
-echo >> ÏÂÒ»²½£º
-echo   1. È·±£ AstrBot + WinRemote ²å¼þÒÑÔÚ·þÎñÆ÷¶ËÔËÐÐ
-echo   2. Ë«»÷ÔËÐÐ run_agent.bat ²âÊÔÁ¬½Ó
-echo   3. »òÓÃ agent_admin.bat °²×°Îª Windows ÏµÍ³·þÎñ£¨¿ª»ú×ÔÆô£©
+echo ðŸ“Œ ä¸‹ä¸€æ­¥ï¼š
+echo   1. ç¡®ä¿ AstrBot + WinRemote æ’ä»¶å·²åœ¨æœåŠ¡å™¨ç«¯è¿è¡Œ
+echo   2. åŒå‡»è¿è¡Œ run_agent.bat æµ‹è¯•è¿žæŽ¥
+echo   3. æˆ–ç”¨ agent_admin.bat å®‰è£…ä¸º Windows ç³»ç»ŸæœåŠ¡ï¼ˆå¼€æœºè‡ªå¯ï¼‰
 echo.
-echo [WARN] °²È«ÌáÐÑ£º
-echo   ¡¤ ÇëÈ·ÈÏ Agent ¶Ë Token Óë·þÎñÆ÷¶ËÒ»ÖÂ
-echo   ¡¤ ¹«ÍøÁ¬½Ó½¨Òé¿ªÆô WSS ¼ÓÃÜÄ£Ê½
+echo âš ï¸ å®‰å…¨æé†’ï¼š
+echo   Â· è¯·ç¡®è®¤ Agent ç«¯ Token ä¸ŽæœåŠ¡å™¨ç«¯ä¸€è‡´
+echo   Â· å…¬ç½‘è¿žæŽ¥å»ºè®®å¼€å¯ WSS åŠ å¯†æ¨¡å¼
 echo.
-echo   °´ÈÎÒâ¼üÍË³ö...
+echo   æŒ‰ä»»æ„é”®é€€å‡º...
 pause >nul
 endlocal
 exit /b 0
 
 REM ============================================================
-REM ¹¤¾ßº¯Êý£º¼ì²é×Ö·û´®³¤¶È
+REM å·¥å…·å‡½æ•°ï¼šæ£€æŸ¥å­—ç¬¦ä¸²é•¿åº¦
 REM ============================================================
 :check_len
 setlocal EnableDelayedExpansion
