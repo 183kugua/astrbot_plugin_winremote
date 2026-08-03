@@ -1,303 +1,157 @@
 {
   "type": "object",
   "title": "WinRemote 远程控制 - 插件配置",
-  "description": "通过 QQ 远程控制 Windows 电脑的 AstrBot 插件。配置项按功能分为 8 大分组，每个分组标题下方有独立说明段落。",
-  "groups": [
-    {
-      "type": "object",
-      "title": "🔌 服务端连接",
-      "description": "WebSocket 服务端的监听地址、端口与路径配置。强烈建议监听 127.0.0.1 并配合 SSH 隧道使用，避免将控制端口直接暴露到公网。",
-      "fields": {
-        "ws_host": {
-          "type": "string",
-          "title": "监听地址",
-          "description": "WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全),::1=IPv6本机。",
-          "default": "127.0.0.1",
-          "enum": [
-            "127.0.0.1",
-            "0.0.0.0",
-            "::1"
-          ],
-          "enumDescriptions": [
-            "仅本机(推荐,需SSH隧道)",
-            "全网监听(不安全)",
-            "IPv6 本机"
-          ]
-        },
-        "ws_port": {
-          "type": "int",
-          "title": "监听端口",
-          "description": "WebSocket 监听端口，范围 1024-65535。",
-          "default": 6190,
-          "min": 1024,
-          "max": 65535
-        },
-        "ws_path": {
-          "type": "string",
-          "title": "WebSocket 路径",
-          "description": "WebSocket 连接路径，可自定义以增加隐蔽性。",
-          "default": "/winremote"
-        },
-        "max_agents": {
-          "type": "int",
-          "title": "最大 Agent 数",
-          "description": "同时连接的最大 Windows Agent 数量。",
-          "default": 8,
-          "min": 1,
-          "max": 50
-        }
+  "description": "通过 QQ 远程控制 Windows 电脑的 AstrBot 插件。",
+  "fields": {
+    "ws_host": {
+      "type": "string",
+      "title": "监听地址",
+      "description": "WebSocket 监听地址。127.0.0.1=仅本机(推荐,需SSH隧道),0.0.0.0=全网(不安全)",
+      "default": "127.0.0.1"
+    },
+    "ws_port": {
+      "type": "int",
+      "title": "监听端口",
+      "description": "WebSocket 监听端口，范围 1024-65535。",
+      "default": 6190
+    },
+    "ws_path": {
+      "type": "string",
+      "title": "WebSocket 路径",
+      "description": "WebSocket 连接路径。",
+      "default": "/winremote"
+    },
+    "max_agents": {
+      "type": "int",
+      "title": "最大 Agent 数",
+      "description": "同时连接的最大 Agent 数量。",
+      "default": 8
+    },
+    "secret_token": {
+      "type": "string",
+      "title": "共享密钥 (Token)",
+      "description": "Agent 连接时校验身份，建议 ≥16 位随机字符串。",
+      "default": "change-me-to-a-long-random-token"
+    },
+    "admin_password": {
+      "type": "string",
+      "title": "二次密码",
+      "description": "可选。留空=不启用；填写后每条指令需追加 --pwd",
+      "default": ""
+    },
+    "password_max_attempts": {
+      "type": "int",
+      "title": "密码最大重试次数",
+      "description": "连续输错几次后触发封禁。",
+      "default": 5
+    },
+    "password_ban_duration": {
+      "type": "int",
+      "title": "封禁时长(秒)",
+      "description": "密码错误封禁持续时间。",
+      "default": 300
+    },
+    "require_encryption": {
+      "type": "bool",
+      "title": "要求加密连接",
+      "description": "设为 true 时拒绝非 wss://",
+      "default": false
+    },
+    "auth_ttl_seconds": {
+      "type": "int",
+      "title": "授权有效期(秒)",
+      "description": "高危操作会话授权有效期，默认300秒",
+      "default": 300
+    },
+    "admin_qq": {
+      "type": "list",
+      "title": "管理员 QQ 白名单",
+      "description": "允许使用 /win 指令的 QQ 号列表",
+      "default": [],
+      "items": {
+        "type": "int"
       }
     },
-    {
-      "type": "object",
-      "title": "🔐 认证与安全",
-      "description": "Token 强度建议 ≥16 位随机字符；二次密码为可选项，启用后每条指令需追加 --pwd xxx 校验。密码最大重试次数与封禁时长可在此配置，防止暴力破解。",
-      "fields": {
-        "secret_token": {
-          "type": "string",
-          "title": "共享密钥",
-          "description": "WebSocket 共享密钥，Agent 连接时校验身份。建议 ≥16 位随机字符串。",
-          "default": "change-me-to-a-long-random-token",
-          "minLength": 8,
-          "maxLength": 256
-        },
-        "admin_password": {
-          "type": "string",
-          "title": "二次密码",
-          "description": "可选。留空=不启用；填写后每条 /win 指令需追加 --pwd xxx 才放行。",
-          "default": "",
-          "minLength": 0,
-          "maxLength": 128
-        },
-        "password_max_attempts": {
-          "type": "int",
-          "title": "密码最大重试次数",
-          "description": "连续输错几次后触发封禁。",
-          "default": 5,
-          "min": 1,
-          "max": 50
-        },
-        "password_ban_duration": {
-          "type": "int",
-          "title": "封禁时长(秒)",
-          "description": "密码错误达到上限后的封禁持续时间。",
-          "default": 300,
-          "min": 60,
-          "max": 86400
-        },
-        "require_encryption": {
-          "type": "bool",
-          "title": "要求加密连接",
-          "description": "设为 true 时拒绝非 wss:// 的连接。生产环境强烈建议开启。",
-          "default": false
-        },
-        "auth_ttl_seconds": {
-          "type": "int",
-          "title": "授权有效期(秒)",
-          "description": "高危操作会话授权有效期。默认300秒(5分钟)；设为0=永久(需私聊确认)；>1800秒也要私聊确认。重启插件后所有授权自动失效。",
-          "default": 300,
-          "min": 0,
-          "max": 3600
-        },
-        "admin_password_hash": {
-          "type": "string",
-          "title": "二次密码SHA-256哈希",
-          "description": "二次密码的 SHA-256 哈希值（用于 HMAC 审计签名）。可用 python3 -c 'import hashlib;print(hashlib.sha256(b\"密码\").hexdigest())' 生成。留空则使用明文密码。",
-          "default": "",
-          "minLength": 0,
-          "maxLength": 128
-        }
+    "allow_group": {
+      "type": "bool",
+      "title": "允许群聊触发",
+      "description": "是否允许在群聊中使用",
+      "default": false
+    },
+    "heartbeat_interval": {
+      "type": "int",
+      "title": "心跳间隔(秒)",
+      "description": "Agent 心跳间隔",
+      "default": 15
+    },
+    "heartbeat_timeout": {
+      "type": "int",
+      "title": "心跳超时(秒)",
+      "description": "超过此时长判定离线",
+      "default": 45
+    },
+    "path_whitelist": {
+      "type": "list",
+      "title": "路径白名单",
+      "description": "Agent 仅可访问这些目录",
+      "default": ["C:\\Temp"],
+      "items": {
+        "type": "string"
       }
     },
-    {
-      "type": "object",
-      "title": "👥 管理员与 Agent",
-      "description": "控制谁可以使用 /win 指令（QQ 号白名单）以及是否允许群聊触发。心跳间隔和超时决定 Agent 在线状态的判定灵敏度。",
-      "fields": {
-        "admin_qq": {
-          "type": "list",
-          "title": "管理员 QQ 白名单",
-          "description": "允许使用 /win 指令的 QQ 号列表。只有列表中的 QQ 才能远程控制。",
-          "default": [],
-          "items": {
-            "type": "int",
-            "min": 10000,
-            "max": 9999999999
-          }
-        },
-        "allow_group": {
-          "type": "bool",
-          "title": "允许群聊触发",
-          "description": "是否允许在群聊中使用 /win 指令。关闭后仅私聊可用。",
-          "default": false
-        },
-        "heartbeat_interval": {
-          "type": "int",
-          "title": "心跳间隔(秒)",
-          "description": "Agent 向服务端发送心跳的间隔。",
-          "default": 15,
-          "min": 5,
-          "max": 300
-        },
-        "heartbeat_timeout": {
-          "type": "int",
-          "title": "心跳超时(秒)",
-          "description": "超过此时间未收到心跳则判定 Agent 离线。建议 ≥ 心跳间隔的 2 倍。",
-          "default": 45,
-          "min": 10,
-          "max": 600
-        }
-      }
+    "max_read_bytes": {
+      "type": "int",
+      "title": "最大读取字节",
+      "description": "单文件最大读取量",
+      "default": 65536
     },
-    {
-      "type": "object",
-      "title": "📁 文件读写",
-      "description": "路径白名单限制 Agent 只能访问指定目录。路径越狱关键词（如 ..\\ 和 C:\\Windows）双端校验。写入功能默认关闭更安全。",
-      "fields": {
-        "path_whitelist": {
-          "type": "list",
-          "title": "路径白名单",
-          "description": "Agent 仅可访问这些目录下的文件。建议使用 C:\\Temp 等专用目录。",
-          "default": [
-            "C:\\Temp",
-            "C:\\Users\\Public",
-            "D:\\"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
-        "path_blacklist_keywords": {
-          "type": "list",
-          "title": "路径越狱关键词",
-          "description": "含这些关键词的路径一律拒绝（服务端+Agent双端校验）。",
-          "default": [
-            "..\\",
-            "../",
-            "%USERPROFILE%",
-            "%SYSTEMROOT%",
-            "C:\\Windows",
-            "C:\\Program Files"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
-        "max_read_bytes": {
-          "type": "int",
-          "title": "最大读取字节数",
-          "description": "单文件最大读取字节数，防止大文件刷屏。",
-          "default": 65536,
-          "min": 1024,
-          "max": 10485760
-        },
-        "file_allow_write": {
-          "type": "bool",
-          "title": "允许写入文件",
-          "description": "是否允许通过 /win 写入文件。默认关闭，开启需谨慎。",
-          "default": false
-        }
-      }
+    "file_allow_write": {
+      "type": "bool",
+      "title": "允许写入文件",
+      "description": "默认关闭",
+      "default": false
     },
-    {
-      "type": "object",
-      "title": "📤 输出与截图",
-      "description": "控制命令输出的流式推送参数、截图格式与质量。JPEG 体积小适合网络传输，PNG 无损，WebP 折中。锁屏时 pyautogui 键鼠模拟会失效，但 shell 和截图不受影响。",
-      "fields": {
-        "auto_screenshot": {
-          "type": "bool",
-          "title": "自动截图",
-          "description": "指令执行后是否自动附带截图回传。",
-          "default": true
-        },
-        "screenshot_format": {
-          "type": "string",
-          "title": "截图格式",
-          "description": "JPEG=体积小,PNG=无损,WebP=折中。",
-          "default": "JPEG",
-          "enum": [
-            "JPEG",
-            "PNG",
-            "WebP"
-          ],
-          "enumDescriptions": [
-            "JPEG 压缩小体积",
-            "PNG 无损高质量",
-            "WebP 体积质量折中"
-          ]
-        },
-        "screenshot_quality": {
-          "type": "int",
-          "title": "截图质量(1-100)",
-          "description": "仅 JPEG/WebP 有效，PNG 忽略此项。",
-          "default": 75,
-          "min": 1,
-          "max": 100
-        },
-        "max_output_bytes": {
-          "type": "int",
-          "title": "最大输出字节数",
-          "description": "单次命令输出的最大字节数。",
-          "default": 8192,
-          "min": 1024,
-          "max": 1048576
-        },
-        "stream_chunk_size": {
-          "type": "int",
-          "title": "流式分块大小(字节)",
-          "description": "输出分段推送的大小，越小越实时但开销越大。",
-          "default": 1024,
-          "min": 256,
-          "max": 16384
-        },
-        "stream_interval_ms": {
-          "type": "int",
-          "title": "流式推送间隔(毫秒)",
-          "description": "两次推送之间的间隔，控制频率。",
-          "default": 500,
-          "min": 100,
-          "max": 5000
-        },
-        "shell_timeout": {
-          "type": "int",
-          "title": "Shell 超时(秒)",
-          "description": "命令执行超时时间，超时后强杀进程。",
-          "default": 30,
-          "min": 5,
-          "max": 600
-        }
-      }
+    "auto_screenshot": {
+      "type": "bool",
+      "title": "自动截图",
+      "description": "指令后自动附带截图",
+      "default": true
     },
-    {
-      "type": "object",
-      "title": "⚠️ 安全警告",
-      "description": "部署前必读的安全建议。务必使用 SSH 隧道或 wss:// 加密连接，不要将 WebSocket 端口直接暴露公网。Token 建议 ≥16 位随机字符，并启用二次密码作为第二道防线。定期轮换 Token 和二次密码。",
-      "fields": {
-        "ssh_tunnel_warning": {
-          "type": "string",
-          "title": "SSH 隧道建议",
-          "description": "强烈建议通过 SSH 隧道转发 6190 端口，避免直接暴露公网。命令：ssh -N -R 6190:localhost:6190 root@服务器IP",
-          "default": "使用 SSH 隧道：ssh -N -R 6190:localhost:6190 root@服务器IP"
-        },
-        "token_warning": {
-          "type": "string",
-          "title": "Token 强度建议",
-          "description": "Token 至少 16 位随机字符，可用 openssl rand -hex 32 生成。",
-          "default": "Token 至少 16 位随机字符，推荐 openssl rand -hex 32"
-        },
-        "password_warning": {
-          "type": "string",
-          "title": "二次密码建议",
-          "description": "即使 QQ 号泄露，二次密码也能防止未授权使用。建议启用。",
-          "default": "建议启用二次密码作为第二道防线"
-        },
-        "encryption_warning": {
-          "type": "string",
-          "title": "加密连接建议",
-          "description": "生产环境务必使用 wss:// 或 SSH 隧道，禁止明文 ws:// 暴露公网。",
-          "default": "生产环境务必使用 wss:// 或 SSH 隧道"
-        }
-      }
+    "screenshot_format": {
+      "type": "string",
+      "title": "截图格式",
+      "description": "JPEG/PNG/WebP",
+      "default": "JPEG"
+    },
+    "screenshot_quality": {
+      "type": "int",
+      "title": "截图质量(1-100)",
+      "description": "仅 JPEG/WebP 有效",
+      "default": 75
+    },
+    "max_output_bytes": {
+      "type": "int",
+      "title": "最大输出字节",
+      "description": "单次输出上限",
+      "default": 8192
+    },
+    "stream_chunk_size": {
+      "type": "int",
+      "title": "流式分块大小",
+      "description": "分段推送大小",
+      "default": 1024
+    },
+    "stream_interval_ms": {
+      "type": "int",
+      "title": "推送间隔(毫秒)",
+      "description": "两次推送间隔",
+      "default": 500
+    },
+    "shell_timeout": {
+      "type": "int",
+      "title": "Shell 超时(秒)",
+      "description": "命令超时时间",
+      "default": 30
     }
-  ]
+  }
 }
