@@ -18,6 +18,8 @@ from typing import Any
 
 __is_shell__ = True
 
+from typing import Any
+
 # 显式导出列表
 __all__ = [
     "__version__",
