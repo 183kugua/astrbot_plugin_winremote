@@ -409,7 +409,7 @@ async def handle_read_file(path: str, max_bytes: int = 65536) -> str:
 
     # 5. 发送读取请求
     result = await plugin.server.send_command(
-        agent.agent_id, "read_file", {"path": path.strip(), "max_bytes": mb}
+        agent.agent_id, "readfile", {"path": path.strip(), "max_bytes": mb}
     )
 
     # 6. 审计
