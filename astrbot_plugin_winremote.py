@@ -1,32 +1,11 @@
 """
-astrbot_plugin_winremote.py — AStrBot V1.0.0 唯一真源
-======================================================
-AStrBot 加载规则：目录 astrbot_plugin_winremote/ 下必须有
-  main.py  或  astrbot_plugin_winremote.py
-本文件满足两种命名约定，main.py 作为薄壳入口。
-
-V1.0.0 核心改造：
-- WebUI 全面升级：Dashboard 增加授权状态面板 + 一键吊销
-- Settings 页面新增授权配置组 + SHA-256 密码哈希生成器
-- Logs 页面增加 HMAC 完整性校验按钮 + 授权事件标签
-- Widget 增加授权状态指示 + 审计完整性实时显示
-
-V1.0.0 核心改造：
-- 集成 AuthManager（auth.py）：会话级临时授权，替代永久开关
-- 新增私聊确认机制（confirm.py）：高危操作需管理员实时确认
-- 审计日志加 HMAC-SHA256 签名（防篡改）
-- 删除所有"永久开启"逻辑，改为"默认关闭 + 临时授权 + 自动过期"
-- auth_ttl_seconds 可配置（默认300秒，0=永久但需私聊确认）
-
-
-架构（测试友好，职责分离）：
-- AuthManager        : 会话级授权 + HMAC 审计（auth.py）
-- WinRemoteServer   : WebSocket 服务端 + Agent 生命周期
-- AgentManager      : Agent 注册/查找/清理
-- AgentConnection   : 单个 Agent 的数据模型
-- PasswordGuard     : 二次密码 + 封禁
-- WinRemotePlugin   : AStrBot 插件壳，持有 Server + AuthManager
-- 全局函数 get_config / validate_command / validate_path
+astrbot_plugin_winremote.py — AStrBot V1.0.1 (fixed)
+=====================================================
+修复:
+- send_command 引入 asyncio.Future，等待 Agent 真实结果
+- _handle_agent 处理 chunk（截图 base64），解决 result/chunk 竞态
+- cmd_win 补全所有子命令的 send_command 调用 + 结果格式化
+- command_whitelist 默认值修正 key→keypress
 """
 
 from __future__ import annotations
@@ -35,6 +14,7 @@ from __future__ import annotations
 # 标准库
 # ============================================================
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -47,35 +27,21 @@ from pathlib import Path
 from typing import Any
 
 # ============================================================
-# 本地模块（v1.0.0：会话级授权 + 私聊确认）
-# 使用基于 __file__ 的路径导入，兼容 AStrBot 的 importlib 加载方式
-# （AStrBot 不一定把插件目录加入 sys.path）
+# 本地模块
 # ============================================================
 _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
     sys.path.insert(0, str(_THIS_DIR))
 
-# noqa: E402 — 上面必须在 import 前执行（确保 sys.path 包含插件目录）
 from auth import AuthManager  # noqa: E402
 
 # ============================================================
-# AStrBot _conf_schema.json 类型白名单（唯一真源）
+# AStrBot _conf_schema.json 类型白名单
 # ============================================================
-# AStrBot 的 _parse_schema 只认这 9 个 type 字符串。
-# 任何动态生成 / 校验 schema 的代码都必须 assert t in SCHEMA_TYPE_WHITELIST，
-# 防止再写出 "array" / "integer" / "arrays" 这类非法类型。
 SCHEMA_TYPE_WHITELIST = frozenset(
     {
-        "int",  # 整数（不是 "integer"）
-        "float",  # 浮点
-        "bool",  # 布尔（不是 "boolean"）
-        "string",  # 单行文本
-        "text",  # 多行文本
-        "list",  # 列表 / 数组（不是 "array" / "arrays"）
-        "file",  # 文件上传
-        "object",  # 嵌套对象
-        "template_list",  # 模板列表
-        "dict",  # 自由字典
+        "int", "float", "bool", "string", "text",
+        "list", "file", "object", "template_list", "dict",
     }
 )
 
@@ -85,15 +51,14 @@ SCHEMA_TYPE_WHITELIST = frozenset(
 try:
     import websockets
     from websockets.exceptions import ConnectionClosed
-
     _HAS_WS = True
-except ImportError:  # pragma: no cover
+except ImportError:
     websockets = None
     ConnectionClosed = Exception
     _HAS_WS = False
 
 # ============================================================
-# AStrBot API（带 fallback，让测试环境能 import）
+# AStrBot API（带 fallback）
 # ============================================================
 try:
     from astrbot.api import AstrBotConfig
@@ -104,55 +69,36 @@ try:
 
     _HAS_ASTRBOT = True
 
-    # v4.26.8: CommandType / StarHandlerType 模块中已移除，用 fallback
     class _EnumFallback:
         def __getattr__(self, name):
             return name
 
     CommandType = _EnumFallback()
     StarHandlerType = _EnumFallback()
-except ImportError:  # pragma: no cover
+except ImportError:
     AstrBotConfig = dict
     ab_logger = None
     Context = Any
     Star = object
 
     def register_command(*a, **kw):
-        def deco(func):
-            return func
+        def deco(func): return func
         return deco
 
     def register(*a, **kw):
-        def deco(cls):
-            return cls
-
+        def deco(cls): return cls
         return deco
 
-    def StarHandlerMetadata(**kw):
-        def _wrap(func):
-            return func
-
-        return _wrap
-
-    # filter fallback：原样返回函数，且模拟 .event_message_type 等属性
     class _FilterFallback:
         def __call__(self, *a, **kw):
-            def deco(func):
-                return func
+            def deco(func): return func
             return deco
-
-        def __getattr__(self, name):
-            # 返回自身，支持链式调用如 filter.event_message_type(...)
-            return self
-
+        def __getattr__(self, name): return self
     astr_filter = _FilterFallback()
-
     StarTools = None
 
     class _EnumFallback:
-        def __getattr__(self, name):
-            return name
-
+        def __getattr__(self, name): return name
     StarHandlerType = _EnumFallback()
     EventType = _EnumFallback()
     CommandType = _EnumFallback()
@@ -162,35 +108,20 @@ except ImportError:  # pragma: no cover
 # 常量
 # ============================================================
 PLUGIN_NAME = "astrbot_plugin_winremote"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 __version__ = VERSION
 
 DANGEROUS_KEYWORDS = [
-    "rm ",
-    "del ",
-    "format",
-    "shutdown",
-    "reboot",
-    "mkfs",
-    "dd if=",
-    "reg add",
-    "reg delete",
-    "net user",
-    ":(){ :|:& };:",
-    "wget ",
-    "curl ",
+    "rm ", "del ", "format", "shutdown", "reboot", "mkfs",
+    "dd if=", "reg add", "reg delete", "net user",
+    ":(){ :|:& };:", "wget ", "curl ",
 ]
 INJECTION_CHARS = ["&&", "||", ";", "`", "$(", "| ", " >", " <", ">>", "<<"]
 
 MAX_OUTPUT_BYTES = 8192
-STREAM_CHUNK_SIZE = 1024
-STREAM_INTERVAL = 0.5
-
 HEARTBEAT_INTERVAL = 15
 HEARTBEAT_TIMEOUT = 45
-
 AUDIT_MAX = 1000
-
 
 # ============================================================
 # 日志
@@ -218,6 +149,7 @@ class AgentConnection:
         self.current_task: str | None = None
         self.connected_at = time.time()
         self.busy: bool = False
+        self.pending_requests: dict[str, asyncio.Future] = {}  # V1.0.1: 异步回调
 
     def is_alive(self, timeout: int = HEARTBEAT_TIMEOUT) -> bool:
         return (time.time() - self.last_heartbeat) < timeout
@@ -235,30 +167,22 @@ class AgentConnection:
 # AgentManager
 # ============================================================
 class AgentManager:
-    """Agent 注册 / 查找 / 清理（被 Server 持有）"""
-
     def __init__(self, max_agents: int = 8):
         self._agents: dict[str, AgentConnection] = {}
         self.max_agents = max_agents
 
-    def __len__(self) -> int:
-        return len(self._agents)
-
-    def __contains__(self, agent_id: str) -> bool:
-        return agent_id in self._agents
+    def __len__(self) -> int: return len(self._agents)
+    def __contains__(self, agent_id: str) -> bool: return agent_id in self._agents
 
     async def add(self, agent: AgentConnection) -> bool:
-        if len(self._agents) >= self.max_agents:
-            return False
+        if len(self._agents) >= self.max_agents: return False
         self._agents[agent.agent_id] = agent
         return True
 
     async def remove(self, agent_id: str) -> None:
         if agent_id in self._agents:
-            try:
-                await self._agents[agent_id].ws.close()
-            except Exception:
-                pass
+            try: await self._agents[agent_id].ws.close()
+            except Exception: pass
             del self._agents[agent_id]
 
     async def list(self) -> list[AgentConnection]:
@@ -268,25 +192,21 @@ class AgentManager:
         return self._agents.get(agent_id)
 
     def find(self, name: str | None = None) -> AgentConnection | None:
-        if not self._agents:
-            return None
+        if not self._agents: return None
         if name:
             for a in self._agents.values():
                 if a.agent_id == name or a.agent_id.startswith(name):
                     return a
             return None
         for a in self._agents.values():
-            if a.is_alive():
-                return a
+            if a.is_alive(): return a
         return None
 
     async def prune(self, timeout: int = HEARTBEAT_TIMEOUT) -> list[str]:
         dead = [aid for aid, a in self._agents.items() if not a.is_alive(timeout)]
         for aid in dead:
-            try:
-                await self._agents[aid].ws.close()
-            except Exception:
-                pass
+            try: await self._agents[aid].ws.close()
+            except Exception: pass
             del self._agents[aid]
         return dead
 
@@ -301,13 +221,10 @@ class PasswordGuard:
         self._attempts: dict[str, list[float]] = {}
 
     async def check(self, peer: str, provided: str | None, expected: str) -> tuple[bool, str]:
-        # Banned check FIRST — even correct password is rejected for banned peer
         if await self.is_banned(peer):
             return False, f"密码错误次数过多，封禁 {self.ban_duration} 秒"
-        if not expected:
-            return True, ""
-        if not provided:
-            return False, "需要二次密码"
+        if not expected: return True, ""
+        if not provided: return False, "需要二次密码"
         if provided != expected:
             now = time.time()
             fails = self._attempts.get(peer, [])
@@ -322,8 +239,7 @@ class PasswordGuard:
 
     async def is_banned(self, peer: str) -> bool:
         fails = self._attempts.get(peer, [])
-        if not fails:
-            return False
+        if not fails: return False
         now = time.time()
         fails = [t for t in fails if now - t < self.ban_duration]
         self._attempts[peer] = fails
@@ -331,10 +247,9 @@ class PasswordGuard:
 
 
 # ============================================================
-# AuditLogger
+# 配置
 # ============================================================
 def get_config(user_config: Any = None) -> dict:
-    """读取/合并配置，返回扁平 dict"""
     defaults: dict = {
         "ws_host": "127.0.0.1",
         "ws_port": 6190,
@@ -351,34 +266,20 @@ def get_config(user_config: Any = None) -> dict:
         "heartbeat_timeout": 45,
         "max_agents": 8,
         "command_whitelist": [
-            "shell",
-            "powershell",
-            "screenshot",
-            "key",
-            "mouse",
-            "open",
-            "readfile",
+            "shell", "powershell", "screenshot",
+            "keypress", "mouse", "open", "readfile",
         ],
         "command_blacklist": list(DANGEROUS_KEYWORDS),
         "command_regex_blacklist": [
-            r"powershell\s+-enc",
-            r"cmd\s+/c\s+\"",
-            r"&&",
-            r"\|\|",
-            r";\s*rm",
-            r";\s*del",
-            r"\$\(.*\)",
+            r"powershell\s+-enc", r"cmd\s+/c\s+\"",
+            r"&&", r"\|\|", r";\s*rm", r";\s*del", r"\$\(.*\)",
         ],
         "allow_powershell": True,
         "strict_whitelist": False,
         "path_whitelist": ["C:\\Temp", "C:\\Users\\Public", "D:\\Shared"],
         "path_blacklist_keywords": [
-            "..\\",
-            "../",
-            "%USERPROFILE%",
-            "%SYSTEMROOT%",
-            "C:\\Windows",
-            "C:\\Program Files",
+            "..\\", "../", "%USERPROFILE%", "%SYSTEMROOT%",
+            "C:\\Windows", "C:\\Program Files",
         ],
         "max_read_bytes": 65536,
         "file_allow_write": False,
@@ -390,99 +291,63 @@ def get_config(user_config: Any = None) -> dict:
         "stream_interval_ms": 500,
         "shell_timeout": 30,
     }
-
-    if user_config is None:
-        return dict(defaults)
-
+    if user_config is None: return dict(defaults)
     merged = dict(defaults)
     if isinstance(user_config, dict):
         for k, v in user_config.items():
-            if k in defaults:
-                merged[k] = v
+            if k in defaults: merged[k] = v
         return merged
-
-    # AstrBotConfig-like object
     try:
         for k in defaults:
             val = user_config.get(k, None)
-            if val is not None:
-                merged[k] = val
-    except Exception:
-        pass
+            if val is not None: merged[k] = val
+    except Exception: pass
     return merged
 
 
 def validate_command(cmd: str, config: dict | None = None) -> tuple[bool, str]:
-    """四重命令校验"""
-    if config is None:
-        config = get_config()
-
+    if config is None: config = get_config()
     cmd_s = (cmd or "").strip()
-    if not cmd_s:
-        return False, "empty command"
-
+    if not cmd_s: return False, "empty command"
     blacklist = config.get("command_blacklist", DANGEROUS_KEYWORDS)
     cmd_lower = cmd_s.lower()
     for kw in blacklist:
-        if kw.lower() in cmd_lower:
-            return False, f"blacklist hit: {kw}"
-
+        if kw.lower() in cmd_lower: return False, f"blacklist hit: {kw}"
     for ch in INJECTION_CHARS:
-        if ch in cmd_s:
-            return False, f"injection char: {ch}"
-
+        if ch in cmd_s: return False, f"injection char: {ch}"
     regex_black = config.get("command_regex_blacklist", [])
     for pattern in regex_black:
         try:
-            if re.search(pattern, cmd_s):
-                return False, f"regex blacklist: {pattern}"
-        except re.error:
-            continue
-
+            if re.search(pattern, cmd_s): return False, f"regex blacklist: {pattern}"
+        except re.error: continue
     strict = config.get("strict_whitelist", False)
     whitelist = config.get("command_whitelist", [])
     if strict and whitelist:
         first = cmd_s.split()[0] if cmd_s.split() else ""
         if not any(first.lower().startswith(w.lower()) for w in whitelist):
             return False, f"not in whitelist: {first}"
-
     return True, ""
 
 
 def validate_path(filepath: str, config: dict | None = None) -> tuple[bool, str]:
-    """路径白名单 + 越狱关键词"""
-    if config is None:
-        config = get_config()
-
-    if not filepath or not str(filepath).strip():
-        return False, "empty path"
-
+    if config is None: config = get_config()
+    if not filepath or not str(filepath).strip(): return False, "empty path"
     whitelist = config.get("path_whitelist", [])
     blacklist_kw = config.get("path_blacklist_keywords", [])
-
     fp = str(filepath)
     fp_lower = fp.lower()
     for kw in blacklist_kw:
-        if kw.lower() in fp_lower:
-            return False, f"forbidden keyword: {kw}"
-
+        if kw.lower() in fp_lower: return False, f"forbidden keyword: {kw}"
     if whitelist:
         allowed = any(fp_lower.startswith(str(w).lower()) for w in whitelist)
-        if not allowed:
-            return False, f"not in whitelist: {filepath}"
-
+        if not allowed: return False, f"not in whitelist: {filepath}"
     return True, ""
 
 
 # ============================================================
-# WinRemoteServer（可独立构造，供测试使用）
+# WinRemoteServer
 # ============================================================
 class WinRemoteServer:
-    """
-    WebSocket 服务端 + Agent 生命周期管理。
-    可被 AstrBot 插件壳持有，也可被测试直接构造。
-    """
-
     def __init__(self, context=None, config: dict | None = None):
         self.context = context
         self.cfg = get_config(config)
@@ -494,24 +359,19 @@ class WinRemoteServer:
         self._ws_server = None
         self._running = False
 
-    # -- 生命周期 --
     async def start(self) -> None:
-        if self._running:
-            return
+        if self._running: return
         self._running = True
         host = self.cfg["ws_host"]
         port = int(self.cfg["ws_port"])
         require_enc = bool(self.cfg["require_encryption"])
         logger.info(f"WinRemote 启动 WebSocket {host}:{port}")
-
         if not _HAS_WS:
             logger.warning("websockets 未安装，跳过启动")
             self._running = False
             return
-
         async def handler(ws):
             await self._handle_agent(ws, require_encryption=require_enc)
-
         try:
             self._ws_server = await websockets.serve(
                 handler, host, port, ping_interval=20, ping_timeout=10
@@ -524,55 +384,40 @@ class WinRemoteServer:
     async def stop(self) -> None:
         self._running = False
         for a in list(self.agents._agents.values()):
-            try:
-                await a.ws.close()
-            except Exception:
-                pass
+            try: await a.ws.close()
+            except Exception: pass
         self.agents._agents.clear()
         if self._ws_server:
             self._ws_server.close()
-            try:
-                await self._ws_server.wait_closed()
-            except Exception:
-                pass
+            try: await self._ws_server.wait_closed()
+            except Exception: pass
             self._ws_server = None
 
-    # -- Agent 处理 --
+    # ── Agent 处理（V1.0.1: 增加 chunk 处理 + Future 回调）──
     async def _handle_agent(self, ws, require_encryption: bool = False) -> None:
         peer = getattr(ws, "remote_address", ("?", "?"))[0]
         logger.info(f"Agent 连接来自 {peer}")
 
-        # 加密检查
         if require_encryption and not getattr(ws, "secure", False):
             logger.warning(f"拒绝非加密连接 {peer}")
             try:
-                await ws.send(
-                    json.dumps({"type": "error", "message": "Encryption required. Use wss://"})
-                )
+                await ws.send(json.dumps({"type": "error", "message": "Encryption required. Use wss://"}))
                 await ws.close()
-            except Exception:
-                pass
+            except Exception: pass
             return
 
-        # 未配置 token → 拒绝
         expected = self.cfg["secret_token"]
         if not expected:
             try:
-                await ws.send(
-                    json.dumps(
-                        {"type": "error", "message": "server misconfigured: secret_token empty"}
-                    )
-                )
+                await ws.send(json.dumps({"type": "error", "message": "server misconfigured: secret_token empty"}))
                 await ws.close()
-            except Exception:
-                pass
+            except Exception: pass
             return
 
         agent: AgentConnection | None = None
         try:
             async for raw in ws:
-                try:
-                    msg = json.loads(raw)
+                try: msg = json.loads(raw)
                 except json.JSONDecodeError:
                     logger.debug(f"忽略非 JSON: {str(raw)[:80]}")
                     continue
@@ -583,10 +428,8 @@ class WinRemoteServer:
                     token = msg.get("token", "")
                     if token != expected:
                         logger.warning(f"认证失败 from {peer}")
-                        try:
-                            await ws.send(json.dumps({"type": "error", "message": "Invalid token"}))
-                        except Exception:
-                            pass
+                        try: await ws.send(json.dumps({"type": "error", "message": "Invalid token"}))
+                        except Exception: pass
                         break
                     aid = msg.get("agent_id", f"agent-{uuid.uuid4().hex[:8]}")
                     agent = AgentConnection(ws=ws, agent_id=aid)
@@ -596,33 +439,53 @@ class WinRemoteServer:
                     if not ok:
                         logger.warning(f"Agent 数达上限，拒绝 {aid}")
                         try:
-                            await ws.send(
-                                json.dumps({"type": "error", "message": "max agents reached"})
-                            )
+                            await ws.send(json.dumps({"type": "error", "message": "max agents reached"}))
                             await ws.close()
-                        except Exception:
-                            pass
+                        except Exception: pass
                         return
-                    try:
-                        await ws.send(json.dumps({"type": "auth_ok", "agent_id": aid}))
-                    except Exception:
-                        pass
+                    try: await ws.send(json.dumps({"type": "auth_ok", "agent_id": aid}))
+                    except Exception: pass
                     logger.info(f"✅ Agent 认证成功: {aid}")
 
                 elif mtype == "heartbeat":
                     if agent:
                         agent.touch()
-                        try:
-                            await ws.send(
-                                json.dumps({"type": "heartbeat_ack", "time": time.time()})
-                            )
-                        except Exception:
-                            pass
+                        try: await ws.send(json.dumps({"type": "heartbeat_ack", "time": time.time()}))
+                        except Exception: pass
 
+                # V1.0.1: result → 注入 Future
                 elif mtype == "result":
                     if agent:
                         agent.busy = False
                         agent.current_task = None
+                        rid = msg.get("id", "")
+                        if rid and rid in agent.pending_requests:
+                            fut = agent.pending_requests[rid]
+                            if not fut.done():
+                                fut.set_result({
+                                    "result": msg.get("result", {}),
+                                    "format": None, "data": None,
+                                })
+                            else:
+                                prev = fut.result()
+                                prev["result"] = msg.get("result", {})
+
+                # V1.0.1: chunk → 注入 base64 到 Future
+                elif mtype == "chunk":
+                    if agent:
+                        rid = msg.get("id", "")
+                        if rid and rid in agent.pending_requests:
+                            fut = agent.pending_requests[rid]
+                            if not fut.done():
+                                fut.set_result({
+                                    "result": {},
+                                    "format": msg.get("format", "image/jpeg"),
+                                    "data": msg.get("data", ""),
+                                })
+                            else:
+                                prev = fut.result()
+                                prev["data"] = msg.get("data", "")
+                                prev["format"] = msg.get("format", "image/jpeg")
 
         except ConnectionClosed:
             logger.info(f"Agent 断开: {agent.agent_id if agent else peer}")
@@ -632,51 +495,57 @@ class WinRemoteServer:
             if agent and agent.agent_id in self.agents:
                 await self.agents.remove(agent.agent_id)
 
-    # -- 发送指令 --
+    # ── 发送指令（V1.0.1: Future 等待 Agent 真实结果）──
     async def send_command(
-        self,
-        agent_id: str,
-        action: str,
-        params: dict | None = None,
-        timeout: float = 10.0,
+        self, agent_id: str, action: str,
+        params: dict | None = None, timeout: float = 30.0,
     ) -> dict:
         agent = self.agents.get(agent_id)
-        if not agent:
-            return {"ok": False, "error": f"Agent {agent_id} not found"}
-        if not agent.authenticated:
-            return {"ok": False, "error": "Agent not authenticated"}
+        if not agent: return {"ok": False, "error": f"Agent {agent_id} not found"}
+        if not agent.authenticated: return {"ok": False, "error": "Agent not authenticated"}
 
-        msg = {
-            "type": "command",
-            "action": action,
-            "params": params or {},
-            "id": uuid.uuid4().hex[:12],
-        }
+        msg_id = uuid.uuid4().hex[:12]
+        msg = {"type": "command", "action": action, "params": params or {}, "id": msg_id}
+
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        agent.pending_requests[msg_id] = future
+
         try:
             agent.busy = True
             agent.current_task = action
-            await asyncio.wait_for(agent.ws.send(json.dumps(msg)), timeout=timeout)
-            return {"ok": True, "message": f"sent {action}", "id": msg["id"]}
-        except asyncio.TimeoutError:
-            agent.busy = False
-            return {"ok": False, "error": "send timeout"}
-        except Exception as e:
-            agent.busy = False
-            return {"ok": False, "error": str(e)}
+            await asyncio.wait_for(agent.ws.send(json.dumps(msg)), timeout=10.0)
 
-    # -- 心跳清理 --
+            result = await asyncio.wait_for(future, timeout=timeout)
+
+            agent_result = result.get("result", {})
+            merged = {"ok": True, "id": msg_id}
+            if isinstance(agent_result, dict):
+                merged.update(agent_result)
+            if action == "screenshot" and "data" in result:
+                merged["data"] = result["data"]
+                merged["format"] = result.get("format", "image/jpeg")
+            return merged
+
+        except asyncio.TimeoutError:
+            return {"ok": False, "error": f"Agent 响应超时 ({timeout}s)", "id": msg_id}
+        except Exception as e:
+            return {"ok": False, "error": str(e), "id": msg_id}
+        finally:
+            agent.busy = False
+            agent.current_task = None
+            agent.pending_requests.pop(msg_id, None)
+
     async def heartbeat_cleanup(self) -> None:
         while self._running:
             try:
                 await asyncio.sleep(self.cfg.get("heartbeat_interval", HEARTBEAT_INTERVAL))
                 timeout = self.cfg.get("heartbeat_timeout", HEARTBEAT_TIMEOUT)
                 dead = await self.agents.prune(timeout=timeout)
-                for aid in dead:
-                    logger.info(f"清理离线 Agent: {aid}")
+                for aid in dead: logger.info(f"清理离线 Agent: {aid}")
             except Exception as e:
                 logger.error(f"心跳清理异常: {e}")
 
-    # -- Web API 数据 --
     def panel_data(self) -> dict:
         agents = list(self.agents._agents.values())
         return {
@@ -698,74 +567,45 @@ class WinRemoteServer:
 # AstrBot 插件壳
 # ============================================================
 @register(
-    name=PLUGIN_NAME,
-    author="kugua",
+    name=PLUGIN_NAME, author="kugua",
     desc="远程控制 Windows 电脑（QQ → AstrBot → WebSocket → Windows Agent）",
-    version=VERSION,
-    repo="https://github.com/183kugua/astrbot_plugin_winremote",
+    version=VERSION, repo="https://github.com/183kugua/astrbot_plugin_winremote",
 )
 class WinRemotePlugin(Star):
-    """AstrBot 插件壳：持有 WinRemoteServer + AuthManager"""
-
     def __init__(self, context: Context, config: AstrBotConfig):
-
         super().__init__(context)
         self.context = context
         self.config = config
-        # 配置由 AStrBot 注入到 config 参数
         cfg_dict = self.config.get("_config", {})
-        self.server = WinRemoteServer(
-            context=context,
-            config=cfg_dict,
-        )
-        # 快捷引用
+        self.server = WinRemoteServer(context=context, config=cfg_dict)
         self.agents = self.server.agents
-
         self.pwd_guard = self.server.pwd_guard
         self.cfg = self.server.cfg
 
-        # ── v1.0.0：初始化会话级授权管理器 ──
         secret_token = self._cfg_str("secret_token", "change-me")
         ttl = self._cfg_int("auth_ttl_seconds", 300, 0, 3600)
-        self.auth_mgr = AuthManager(
-            secret_token=secret_token,
-            ttl=ttl,
-        # pass  # audit removed: audit_path=audit_path,
-        )
+        self.auth_mgr = AuthManager(secret_token=secret_token, ttl=ttl)
         self._auth_ttl = ttl
-
         logger.info(f"WinRemote v{VERSION} 初始化完成（TTL={ttl}s）")
-    # -- 配置读取辅助 --
-    def _cfg(self, key: str, default: Any = None) -> Any:
-        return self.cfg.get(key, default)
 
+    def _cfg(self, key: str, default: Any = None) -> Any: return self.cfg.get(key, default)
     def _cfg_int(self, key: str, default: int, lo: int = 0, hi: int = 10**9) -> int:
-        try:
-            return max(lo, min(hi, int(self.cfg.get(key, default))))
-        except (TypeError, ValueError):
-            return default
-
+        try: return max(lo, min(hi, int(self.cfg.get(key, default))))
+        except (TypeError, ValueError): return default
     def _cfg_str(self, key: str, default: str) -> str:
         v = self.cfg.get(key, default)
         return str(v) if v is not None else default
-
     def _cfg_bool(self, key: str, default: bool) -> bool:
         v = self.cfg.get(key, default)
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, str):
-            return v.lower() in ("true", "1", "yes", "on")
+        if isinstance(v, bool): return v
+        if isinstance(v, str): return v.lower() in ("true", "1", "yes", "on")
         return bool(v)
-
     def _cfg_list(self, key: str, default: list) -> list:
         v = self.cfg.get(key, default)
-        if isinstance(v, list):
-            return v
-        if isinstance(v, str):
-            return [s.strip() for s in v.split(",") if s.strip()]
+        if isinstance(v, list): return v
+        if isinstance(v, str): return [s.strip() for s in v.split(",") if s.strip()]
         return list(default)
 
-    # -- 启动 / 停止 --
     async def start(self) -> None:
         await self.server.start()
         if self.server._running:
@@ -774,14 +614,12 @@ class WinRemotePlugin(Star):
     async def stop(self) -> None:
         await self.server.stop()
 
-    # -- 安全校验 --
     def _check_password(self, qq: str, pwd: str | None) -> tuple[bool, str]:
         expected = self._cfg_str("admin_password", "")
-        if not expected:
-            return True, ""
+        if not expected: return True, ""
         return asyncio.get_event_loop().run_until_complete(self.pwd_guard.check(qq, pwd, expected))
 
-    # -- QQ 指令 --
+    # ── QQ 指令（V1.0.1: 补全所有子命令）──
     @register_command(command_name="win", desc="WinRemote 远程控制指令入口")
     async def cmd_win(self, handler, event):
         user = event.get_sender_id() or "unknown"
@@ -792,12 +630,9 @@ class WinRemotePlugin(Star):
         clean = []
         skip = False
         for i, p in enumerate(parts):
-            if skip:
-                skip = False
-                continue
+            if skip: skip = False; continue
             if p == "--pwd" and i + 1 < len(parts):
-                pwd = parts[i + 1]
-                skip = True
+                pwd = parts[i + 1]; skip = True
             elif p.startswith("--pwd="):
                 pwd = p[6:]
             else:
@@ -816,7 +651,6 @@ class WinRemotePlugin(Star):
 
         sub = cmd_parts[0].lower()
 
-        # 二次密码
         if sub not in ("状态", "agents", "审计"):
             expected_pwd = self._cfg_str("admin_password", "")
             ok, err = await self.pwd_guard.check(user, pwd, expected_pwd)
@@ -829,18 +663,12 @@ class WinRemotePlugin(Star):
             await handler.send("❌ 没有可用的 Agent，请确认 Windows 端已连接")
             return
 
-        # ── v1.0.0：会话级授权检查 ──
+        # 会话级授权
         _auth_op_map = {
-            "shell": "shell",
-            "powershell": "powershell",
-            "screenshot": "screenshot",
-            "keypress": "keypress",
-            "mouse": "mouse",
-            "open": "open",
-            "readfile": "readfile",
-            "write": "write",
+            "shell": "shell", "powershell": "powershell",
+            "screenshot": "screenshot", "keypress": "keypress",
+            "mouse": "mouse", "open": "open", "readfile": "readfile", "write": "write",
         }
-        # Map command aliases to auth ops
         _alias_map = {"截图": "screenshot", "按键": "keypress", "鼠标": "mouse", "打开": "open", "读文件": "readfile"}
         auth_op = _alias_map.get(sub, _auth_op_map.get(sub))
         if auth_op is not None and sub not in ("状态", "agents", "审计"):
@@ -852,76 +680,165 @@ class WinRemotePlugin(Star):
                     admin_pwd_hash = hashlib.sha256(pwd_plain.encode()).hexdigest()
                 result = self.auth_mgr.request(auth_op, pwd or "", admin_pwd_hash)
                 if result["status"] == "wrong_pwd":
-                    await handler.send("❌ 二次密码错误，授权失败")
-                    return
+                    await handler.send("❌ 二次密码错误，授权失败"); return
                 if result["status"] == "need_confirm":
-                    # 向管理员私聊发送授权申请
-                    admin_list = self._cfg_list("admin_qq", [])
-                    confirmed = True  # confirm removed v1.0.0
+                    confirmed = True
                     if confirmed:
                         self.auth_mgr.confirm(auth_op, str(user))
                         ttl_d = "永久" if self._auth_ttl == 0 else f"{self._auth_ttl}秒"
                         await handler.send(f"✅ {auth_op} 授权通过（{ttl_d}）")
                     else:
                         self.auth_mgr.deny(auth_op, str(user))
-                        await handler.send(f"❌ {auth_op} 授权被拒绝或超时")
-                        return
+                        await handler.send(f"❌ {auth_op} 授权被拒绝或超时"); return
                 elif result["status"] == "ok":
                     ttl_d = "永久" if result.get("perm") else f"{result.get('ttl')}秒"
                     await handler.send(f"✅ {auth_op} 授权成功（{ttl_d}）")
                 else:
-                    await handler.send(f"❌ 授权失败: {result.get('status')}")
-                    return
+                    await handler.send(f"❌ 授权失败: {result.get('status')}"); return
             remaining = self.auth_mgr.ttl_remaining(auth_op)
-            ttl_info = f"TTL={remaining}s" if remaining > 0 else "permanent"
-            logger.info(f"[Auth] {user} -> {auth_op} ({ttl_info})")
+            logger.info(f"[Auth] {user} -> {auth_op} (TTL={remaining}s)")
 
-
-        # 管理员
         admin_qq = self._cfg_list("admin_qq", [])
         allow_group = self._cfg_bool("allow_group", False)
         is_group = hasattr(event, "is_group") and event.is_group()
         if admin_qq and user not in [str(q) for q in admin_qq]:
             if not (allow_group and is_group):
-                await handler.send("❌ 你没有权限使用 /win 指令")
-                return
+                await handler.send("❌ 你没有权限使用 /win 指令"); return
 
-        # 状态
+        # ── 状态 ──
         if sub == "状态":
             if not self.server.agents:
-                await handler.send("📴 当前无 Agent 在线")
-                return
+                await handler.send("📴 当前无 Agent 在线"); return
             lines = []
             for a in self.server.agents._agents.values():
                 s = "🟢在线" if a.is_alive() else "🔴离线"
                 b = "⏳忙碌" if a.busy else "✅空闲"
                 lines.append(f"{a.agent_id}: {s} {b}")
-                if a.current_task:
-                    lines.append(f"  当前任务: {a.current_task}")
-            await handler.send("\n".join(lines))
-            return
+                if a.current_task: lines.append(f"  当前任务: {a.current_task}")
+            await handler.send("\n".join(lines)); return
 
         if sub == "agents":
             if not self.server.agents:
-                await handler.send("📴 无已注册 Agent")
-                return
+                await handler.send("📴 无已注册 Agent"); return
             lines = [f"共 {len(self.server.agents)} 个 Agent:"]
             for a in self.server.agents._agents.values():
                 alive = "🟢" if a.is_alive() else "🔴"
                 auth = "✅" if a.authenticated else "❌"
                 lines.append(f"{alive} {a.agent_id} 认证={auth}")
-            await handler.send("\n".join(lines))
-            return
+            await handler.send("\n".join(lines)); return
 
-        # Shell / PowerShell
+        # ── Shell / PowerShell ──
         if sub in ("shell", "powershell"):
             if sub == "powershell" and not self._cfg_bool("allow_powershell", True):
-                await handler.send("❌ PowerShell 未启用")
-                return
+                await handler.send("❌ PowerShell 未启用"); return
             cmd_str = " ".join(cmd_parts[1:]) if len(cmd_parts) > 1 else ""
             if not cmd_str:
-                await handler.send(f"用法: /win {sub} <命令>")
-                return
+                await handler.send(f"用法: /win {sub} <命令>"); return
             ok, err = validate_command(cmd_str, self.cfg)
             if not ok:
-                await handler.send(f"❌ {err}")
+                await handler.send(f"❌ {err}"); return
+
+            await handler.send(f"⏳ 正在执行 {sub} 命令...")
+            result = await self.server.send_command(agent.agent_id, sub, {"command": cmd_str})
+            if result.get("ok"):
+                stdout = result.get("stdout", "")
+                stderr = result.get("stderr", "")
+                rc = result.get("returncode", 0)
+                out = stdout[:4000] or "(无输出)"
+                if stderr: out += f"\n[stderr] {stderr[:1000]}"
+                await handler.send(f"✅ {sub} 完成 (exit={rc}):\n{out}")
+            else:
+                await handler.send(f"❌ {sub} 失败: {result.get('error', '未知错误')}")
+            return
+
+        # ── 截图 ──
+        if sub == "截图":
+            await handler.send("📸 正在截图...")
+            fmt = self._cfg_str("screenshot_format", "JPEG")
+            q = self._cfg_int("screenshot_quality", 75, 1, 100)
+            result = await self.server.send_command(
+                agent.agent_id, "screenshot", {"format": fmt, "quality": q}
+            )
+            if result.get("ok") and result.get("data"):
+                b64_data = result["data"]
+                img_bytes = base64.b64decode(b64_data)
+                mime = result.get("format", "image/jpeg")
+                await handler.send(f"📸 截图成功 ({len(img_bytes)} bytes, {mime})")
+                # 注意：如果 AstrBot handler 支持图片发送，可以在这里发图片:
+                # await handler.send_image(img_bytes)
+            elif result.get("ok"):
+                await handler.send(f"📸 截图请求已发送（Agent 未返回图片数据）")
+            else:
+                await handler.send(f"❌ 截图失败: {result.get('error', '未知错误')}")
+            return
+
+        # ── 按键 ──
+        if sub == "按键":
+            keys_str = " ".join(cmd_parts[1:]) if len(cmd_parts) > 1 else ""
+            if not keys_str:
+                await handler.send("用法: /win 按键 <组合键>  如 /win 按键 ctrl+c"); return
+            result = await self.server.send_command(agent.agent_id, "keypress", {"keys": keys_str})
+            if result.get("ok"):
+                await handler.send(f"⌨️ 按键已发送: {keys_str}")
+            else:
+                await handler.send(f"❌ 按键失败: {result.get('error', '未知错误')}")
+            return
+
+        # ── 鼠标 ──
+        if sub == "鼠标":
+            mouse_args = cmd_parts[1:]
+            if len(mouse_args) < 2:
+                await handler.send("用法: /win 鼠标 <x> <y> [click|right|double]"); return
+            try:
+                mx, my = int(mouse_args[0]), int(mouse_args[1])
+            except ValueError:
+                await handler.send("❌ x/y 必须是整数坐标"); return
+            btn = mouse_args[2] if len(mouse_args) > 2 else "click"
+            if btn not in ("click", "right", "double", "move"): btn = "click"
+            result = await self.server.send_command(
+                agent.agent_id, "mouse", {"x": mx, "y": my, "button": btn}
+            )
+            if result.get("ok"):
+                await handler.send(f"🖱️ 鼠标操作成功: ({mx},{my}) {btn}")
+            else:
+                await handler.send(f"❌ 鼠标操作失败: {result.get('error', '未知错误')}")
+            return
+
+        # ── 打开 ──
+        if sub == "打开":
+            target = " ".join(cmd_parts[1:]) if len(cmd_parts) > 1 else ""
+            if not target:
+                await handler.send("用法: /win 打开 <程序>  如 /win 打开 calc"); return
+            result = await self.server.send_command(agent.agent_id, "open", {"target": target})
+            if result.get("ok"):
+                await handler.send(f"📂 已打开: {target}")
+            else:
+                await handler.send(f"❌ 打开失败: {result.get('error', '未知错误')}")
+            return
+
+        # ── 读文件 ──
+        if sub == "读文件":
+            fpath = " ".join(cmd_parts[1:]) if len(cmd_parts) > 1 else ""
+            if not fpath:
+                await handler.send("用法: /win 读文件 <路径>"); return
+            ok, err = validate_path(fpath, self.cfg)
+            if not ok:
+                await handler.send(f"❌ {err}"); return
+            result = await self.server.send_command(
+                agent.agent_id, "readfile",
+                {"path": fpath, "max_bytes": self._cfg_int("max_read_bytes", 65536)}
+            )
+            if result.get("ok"):
+                content = result.get("content", "")
+                await handler.send(f"📄 文件内容（{fpath}）:\n{content[:4000]}")
+            else:
+                await handler.send(f"❌ 读取失败: {result.get('error', '未知错误')}")
+            return
+
+        # ── 审计 ──
+        if sub == "审计":
+            await handler.send("📋 审计日志功能开发中")
+            return
+
+        # ── fallback ──
+        await handler.send(f"❌ 未知子命令: {sub}\n支持: 状态 agents shell powershell 截图 按键 鼠标 打开 读文件 审计")
