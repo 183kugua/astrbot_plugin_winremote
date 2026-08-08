@@ -3,7 +3,8 @@ astrbot_plugin_winremote.py — AStrBot V1.0.2 (fixed)
 =====================================================
 修复:
 - ws_host 默认 0.0.0.0
-- 在 __init__ 中直接调度 start()，不依赖 AstrBot 生命周期
+- 兼容 AstrBot 4.27.x 配置格式（_config / 顶层）
+- 在 __init__ 中延迟启动 WebSocket
 """
 
 from __future__ import annotations
@@ -350,6 +351,7 @@ class WinRemoteServer:
             return
         expected = self.cfg["secret_token"]
         if not expected:
+            logger.warning(f"secret_token 为空，拒绝连接")
             try:
                 await ws.send(json.dumps({"type": "error", "message": "server misconfigured: secret_token empty"}))
                 await ws.close()
@@ -476,24 +478,31 @@ class WinRemotePlugin(Star):
         super().__init__(context)
         self.context = context
         self.config = config
-        cfg_dict = self.config.get("_config", {})
-        logger.info(f"[WinRemote] 配置加载: ws_host={cfg_dict.get('ws_host', '(默认)')}")
+        # 兼容 AstrBot 4.27.x 两种配置格式：{"_config": {...}} 或直接 {...}
+        raw_cfg = self.config
+        if isinstance(raw_cfg, dict):
+            if "_config" in raw_cfg and isinstance(raw_cfg["_config"], dict):
+                cfg_dict = raw_cfg["_config"]
+            else:
+                cfg_dict = {k: v for k, v in raw_cfg.items() if k != "_config"}
+        else:
+            cfg_dict = {}
+        logger.info(f"[WinRemote] 配置加载: token={'***' if cfg_dict.get('secret_token') else '(空)'}, ws_host={cfg_dict.get('ws_host', '(默认)')}")
         self.server = WinRemoteServer(context=context, config=cfg_dict)
         self.agents = self.server.agents
         self.pwd_guard = self.server.pwd_guard
         self.cfg = self.server.cfg
-        logger.info(f"[WinRemote] 最终配置: ws_host={self.cfg['ws_host']}, ws_port={self.cfg['ws_port']}")
+        logger.info(f"[WinRemote] 最终配置: ws_host={self.cfg['ws_host']}, ws_port={self.cfg['ws_port']}, token={'***' if self.cfg['secret_token'] else '(空)'}")
         secret_token = self._cfg_str("secret_token", "change-me")
         ttl = self._cfg_int("auth_ttl_seconds", 300, 0, 3600)
         self.auth_mgr = AuthManager(secret_token=secret_token, ttl=ttl)
         self._auth_ttl = ttl
         logger.info(f"WinRemote v{VERSION} 初始化完成（TTL={ttl}s）")
-        # 直接在 __init__ 中调度启动，不依赖 AstrBot 调用 start()
+        # 直接在 __init__ 中调度启动
         logger.info("[WinRemote] 在 __init__ 中调度 start()...")
         asyncio.ensure_future(self._delayed_start())
 
     async def _delayed_start(self):
-        """延迟 1 秒启动，确保 AstrBot 事件循环就绪"""
         await asyncio.sleep(1)
         await self.start()
 
