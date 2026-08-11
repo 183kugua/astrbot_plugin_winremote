@@ -1,0 +1,43 @@
+name: astrbot_plugin_winremote
+description: WinRemote 远程控制 Windows 电脑插件
+version: 2.0.0-refactor
+author: mijiang
+astrbot_version: ">=4.0.0"
+platform:
+  - all
+permission:
+  - network
+  - filesystem
+config:
+  - key: server_port
+    type: int
+    default: 8765
+    description: HTTP 服务器端口
+  - key: auth_token
+    type: string
+    default: ""
+    description: 认证 Token（至少 8 位）
+  - key: allowed_commands
+    type: list
+    default: ["ipconfig", "tasklist", "dir", "systeminfo"]
+    description: 允许执行的命令白名单
+  - key: allowed_paths
+    type: list
+    default: ["C:/Users", "D:/", "E:/"]
+    description: 允许访问的路径白名单
+  - key: block_sensitive
+    type: bool
+    default: true
+    description: 是否阻止敏感操作
+  - key: max_output_length
+    type: int
+    default: 5000
+    description: 最大输出长度
+  - key: screenshot_quality
+    type: int
+    default: 75
+    description: 截图质量 (1-100)
+  - key: session_timeout_minutes
+    type: int
+    default: 30
+    description: 会话超时时间（分钟）

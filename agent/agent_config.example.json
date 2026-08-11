@@ -1,0 +1,6 @@
+{
+  "agent_id": "",
+  "server_url": "http://YOUR_SERVER_IP:8765",
+  "heartbeat_interval": 30,
+  "auth_token": "YOUR_AUTH_TOKEN_HERE"
+}

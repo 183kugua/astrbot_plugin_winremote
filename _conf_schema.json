@@ -1,0 +1,55 @@
+{
+  "config_schema": {
+    "server_port": {
+      "type": "integer",
+      "default": 8765,
+      "minimum": 1024,
+      "maximum": 65535,
+      "description": "HTTP 服务器端口"
+    },
+    "auth_token": {
+      "type": "string",
+      "default": "",
+      "minLength": 8,
+      "description": "认证 Token（至少 8 位）"
+    },
+    "allowed_commands": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": ["ipconfig", "tasklist", "dir", "systeminfo", "ping", "netstat"],
+      "description": "允许执行的命令白名单"
+    },
+    "allowed_paths": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": ["C:/Users", "D:/", "E:/"],
+      "description": "允许访问的路径白名单"
+    },
+    "block_sensitive": {
+      "type": "boolean",
+      "default": true,
+      "description": "是否阻止敏感操作"
+    },
+    "max_output_length": {
+      "type": "integer",
+      "default": 5000,
+      "minimum": 100,
+      "maximum": 50000,
+      "description": "最大输出长度"
+    },
+    "screenshot_quality": {
+      "type": "integer",
+      "default": 75,
+      "minimum": 1,
+      "maximum": 100,
+      "description": "截图质量 (1-100)"
+    },
+    "session_timeout_minutes": {
+      "type": "integer",
+      "default": 30,
+      "minimum": 5,
+      "maximum": 1440,
+      "description": "会话超时时间（分钟）"
+    }
+  }
+}
