@@ -14,7 +14,7 @@
 > **⚠️ 来源声明**：本仓库是原作者 [@silver-wolf-little-wife](https://github.com/silver-wolf-little-wife) 的 **Cherry Remote**（[cherry-astrbot](https://github.com/silver-wolf-little-wife/cherry-astrbot) / [cherry-remote-app](https://github.com/silver-wolf-little-wife/cherry-remote-app)）的改名延续版（WinRemote），由 [@183kugua](https://github.com/183kugua) 维护。原作者享有原始作品的全功劳，本项目遵循原开源协议（MIT）。
 
 
-**WinRemote** —— AstrBot 远程操控连接器。当前版本 **v1.4.0**。
+**WinRemote** —— AstrBot 远程操控连接器。当前版本 **v1.5.0**。
 
 桥接 AstrBot（B地·云服务器）与远程电脑上的 winremote-app（C地·家庭局域网 PC），实现「手机发需求 → AstrBot 调 AI 生成指令 → 插件转发 → 远程电脑执行 → 结果回传 B 端研判 → 回复原会话」的完整闭环。
 
