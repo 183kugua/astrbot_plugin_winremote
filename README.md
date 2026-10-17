@@ -1,4 +1,4 @@
-# Cherry Remote（B 端 · AstrBot 插件）
+# winremote（B 端 · AstrBot 插件）
 
 > 让 AstrBot 成为你的远程电脑遥控器 —— 通过 WebSocket 连接多台
 > Windows 电脑，大模型直接帮你操作桌面。
@@ -49,5 +49,7 @@
 - 出门在外不想被遥控？在 C 端控制台打开「急停开关」即可
 
 ## License
+
+##本插件参考https://github.com/silver-wolf-little-wife/cherry-astrbot
 
 MIT
