@@ -50,6 +50,6 @@
 
 ## License
 
-##本插件参考https://github.com/silver-wolf-little-wife/cherry-astrbot
+## 本插件参考https://github.com/silver-wolf-little-wife/cherry-astrbot
 
 MIT
