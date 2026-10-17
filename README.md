@@ -1,15 +1,18 @@
 <h3 align="center">⚠️ 双仓库协作项目 / Two-Repo Project</h3>
 <p align="center"><b>本项目需要两个仓库共同部署才能完整运作：</b></p>
 <p align="center">
-<a href="https://github.com/silver-wolf-little-wife/winremote-astrbot"><b>winremote-astrbot</b></a>（B 端 · AstrBot 插件） ↔ <a href="https://github.com/silver-wolf-little-wife/winremote-app"><b>winremote-app</b></a>（C 端 · 执行器）
+<a href="https://github.com/183kugua/astrbot_plugin_winremote"><b>winremote-astrbot</b></a>（B 端 · AstrBot 插件） ↔ <a href="https://github.com/183kugua/winremote-app"><b>winremote-app</b></a>（C 端 · 执行器）
 </p>
 
 > [!IMPORTANT]
-> 本仓库是 **B 端 AstrBot 插件**，必须与 **C 端执行器 [winremote-app](https://github.com/silver-wolf-little-wife/winremote-app)** 配合部署。请同时获取两个仓库。
+> 本仓库是 **B 端 AstrBot 插件**，必须与 **C 端执行器 [winremote-app](https://github.com/183kugua/winremote-app)** 配合部署。请同时获取两个仓库。
 
 ---
 
 # astrbot_plugin_winremote
+
+> **⚠️ 来源声明**：本仓库是原作者 [@silver-wolf-little-wife](https://github.com/silver-wolf-little-wife) 的 **Cherry Remote**（[cherry-astrbot](https://github.com/silver-wolf-little-wife/cherry-astrbot) / [cherry-remote-app](https://github.com/silver-wolf-little-wife/cherry-remote-app)）的改名延续版（WinRemote），由 [@183kugua](https://github.com/183kugua) 维护。原作者享有原始作品的全功劳，本项目遵循原开源协议（MIT）。
+
 
 **WinRemote** —— AstrBot 远程操控连接器。当前版本 **v1.4.0**。
 
@@ -45,7 +48,7 @@
 
 ## 命令
 
-- `/cherry` —— 插件与在线设备状态
+- `/winremote`（旧 `/cherry` 仍兼容）—— 插件与在线设备状态
 - `/devices` —— 列出在线设备
 - `/screenshot` —— 直接截取 C 端屏幕并发图
 - `/pull <远程路径>` —— 拉取 C 端文件并发图/发文件（路径含空格无需引号）
@@ -109,4 +112,4 @@ python test_b_tools.py   # 10 个 FunctionTool 实例化/schema + remote_input/r
 
 ## 作者
 
-littlewifeofsilverwolf
+183kugua（原作 @littlewifeofsilverwolf）
