@@ -1,6 +1,6 @@
-# Cherry Remote 通信协议 v1.1.0
+# WinRemote 通信协议 v1.1.0
 
-> 双仓库共享协议。本文档为权威版本，`cherry-astrbot`（插件）与 `cherry-remote-app`（App）必须保持同步。
+> 双仓库共享协议。本文档为权威版本，`winremote-astrbot`（插件）与 `winremote-app`（App）必须保持同步。
 
 ## 1. 概述
 

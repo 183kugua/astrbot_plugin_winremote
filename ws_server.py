@@ -72,7 +72,7 @@ class RemoteWsServer:
         self._site = web.TCPSite(self._runner, host="0.0.0.0", port=self.port)
         await self._site.start()
         self._hb_task = asyncio.create_task(self._heartbeat_loop())
-        print(f"[ws_server] Cherry Remote WebSocket 服务已启动: ws://0.0.0.0:{self.port}/ws")
+        print(f"[ws_server] WinRemote WebSocket 服务已启动: ws://0.0.0.0:{self.port}/ws")
 
     async def stop(self) -> None:
         """停止服务端并清理资源。"""
@@ -254,7 +254,7 @@ class RemoteWsServer:
         temp_dir = self.pull_dir or tempfile.gettempdir()
         temp_path = os.path.join(
             temp_dir,
-            f"cherry_pull_{int(time.time())}_{uuid.uuid4().hex[:6]}_{name}",
+            f"winremote_pull_{int(time.time())}_{uuid.uuid4().hex[:6]}_{name}",
         )
         temp_file = open(temp_path, "wb")
         self._transfers[req_id] = {

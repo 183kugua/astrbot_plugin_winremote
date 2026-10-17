@@ -3,7 +3,7 @@
     "type": "int",
     "description": "WebSocket 服务端口",
     "default": 8765,
-    "hint": "C 端 cherry-remote-app 将连接到此端口"
+    "hint": "C 端 winremote-app 将连接到此端口"
   },
   "auth_token": {
     "type": "string",

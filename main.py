@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Cherry Remote —— AstrBot 远程操控连接器。
+"""WinRemote —— AstrBot 远程操控连接器。
 
-纯连接器：桥接 AstrBot（B端）与远程电脑上的 cherry-remote-app（C端）。
+纯连接器：桥接 AstrBot（B端）与远程电脑上的 winremote-app（C端）。
 - 内嵌 aiohttp WebSocket 服务端，接受 C 端 App 主动外连（穿透 NAT）。
 - 注册 FunctionTool，使 AstrBot Agent 可将用户需求转为远程指令下发。
 - 回收执行结果回传 Agent 研判后，由 AstrBot 回复原会话。
@@ -35,7 +35,14 @@ def _get_plugin_data_dir() -> Path:
     """获取插件数据目录：data/plugin_data/cherry_remote/。"""
     from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
-    d = Path(get_astrbot_data_path()) / "plugin_data" / "cherry_remote"
+    d = Path(get_astrbot_data_path()) / "plugin_data" / "winremote"
+    legacy = Path(get_astrbot_data_path()) / "plugin_data" / "cherry_remote"
+    if not d.exists() and legacy.exists():
+        try:
+            legacy.rename(d)
+            logger.info("插件数据目录已迁移: cherry_remote -> winremote")
+        except Exception:
+            d = legacy  # 迁移失败则沿用旧目录
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -842,15 +849,15 @@ class RemoteSeeTool(FunctionTool):
         raise RuntimeError("视觉识别失败")
 
 @register(
-    "astrbot_plugin_cherry_remote",
+    "astrbot_plugin_winremote",
     "littlewifeofsilverwolf",
     "远程操控连接器：桥接 AstrBot 与远程电脑 App",
     "1.4.0",
 )
-class CherryRemote(Star):
-    """Cherry Remote —— 远程操控连接器。
+class WinRemote(Star):
+    """WinRemote —— 远程操控连接器。
 
-    桥接 AstrBot 与远程电脑上的 cherry-remote-app：
+    桥接 AstrBot 与远程电脑上的 winremote-app：
     - 建立 B 端 WebSocket 服务，接受 C 端 App 主动外连（穿透 NAT）
     - 注册 FunctionTool，使 AstrBot Agent 可将用户需求转为远程指令下发
     - 回收执行结果回传 Agent 研判，最终回复发回原会话
@@ -881,7 +888,7 @@ class CherryRemote(Star):
         tools = self._build_tools()
         if tools:
             self.context.add_llm_tools(*tools)
-        logger.info("Cherry Remote 初始化完成。")
+        logger.info("WinRemote 初始化完成。")
 
     def _build_tools(self) -> list[FunctionTool]:
         if self.server is None:
@@ -906,26 +913,32 @@ class CherryRemote(Star):
             built.append(tool)
         return built
 
-    @filter.command("cherry")
-    async def cherry(self, event: AstrMessageEvent):
-        """Cherry Remote 状态查询。发送 `/cherry` 检查插件与设备状态。"""
+    @filter.command("winremote")
+    async def winremote(self, event: AstrMessageEvent):
+        """WinRemote 状态查询。发送 `/winremote` 检查插件与设备状态。"""
         if self.server is None:
-            yield event.plain_result("Cherry Remote 尚未初始化。")
+            yield event.plain_result("WinRemote 尚未初始化。")
             return
         devices = self.server.device_summary()
         if not devices:
             yield event.plain_result(
-                "Cherry Remote 已就绪，但暂无远程设备在线。请先启动 C 端 cherry-remote-app 并接入。"
+                "WinRemote 已就绪，但暂无远程设备在线。请先启动 C 端 winremote-app 并接入。"
             )
             return
         lines = [f"- {d['device_id']}（session {d['session_id'][:8]}）" for d in devices]
-        yield event.plain_result("Cherry Remote 已就绪，在线设备：\n" + "\n".join(lines))
+        yield event.plain_result("WinRemote 已就绪，在线设备：\n" + "\n".join(lines))
+
+    @filter.command("cherry")
+    async def cherry(self, event: AstrMessageEvent):
+        """兼容旧指令：/cherry 等价于 /winremote。"""
+        async for _r in self.winremote(event):
+            yield _r
 
     @filter.command("devices")
     async def devices(self, event: AstrMessageEvent):
         """列出当前在线设备。"""
         if self.server is None:
-            yield event.plain_result("Cherry Remote 尚未初始化。")
+            yield event.plain_result("WinRemote 尚未初始化。")
             return
         devices = self.server.device_summary()
         if not devices:
@@ -938,7 +951,7 @@ class CherryRemote(Star):
     async def screenshot(self, event: AstrMessageEvent):
         """截取 C 端完整屏幕并直接以图片发送。"""
         if self.server is None:
-            yield event.plain_result("Cherry Remote 尚未初始化。")
+            yield event.plain_result("WinRemote 尚未初始化。")
             return
         try:
             resp = await self.server.send_command("screenshot", {}, timeout=30)
@@ -966,7 +979,7 @@ class CherryRemote(Star):
     async def see(self, event: AstrMessageEvent):
         """截取 C 端屏幕并调视觉模型识别画面元素与坐标。用法：/see [描述]"""
         if self.server is None:
-            yield event.plain_result("Cherry Remote 尚未初始化。")
+            yield event.plain_result("WinRemote 尚未初始化。")
             return
         # 可选描述，去掉命令前缀
         msg = event.get_message_str().strip()
@@ -1039,7 +1052,7 @@ class CherryRemote(Star):
     async def pull(self, event: AstrMessageEvent):
         """从 C 端拉取文件并直接发送。用法：/pull <远程文件路径>（路径含空格无需引号）"""
         if self.server is None:
-            yield event.plain_result("Cherry Remote 尚未初始化。")
+            yield event.plain_result("WinRemote 尚未初始化。")
             return
         msg = event.get_message_str().strip()
         parts = msg.split(maxsplit=1)
@@ -1069,4 +1082,4 @@ class CherryRemote(Star):
         """插件卸载/停用时：停止服务端，释放资源。"""
         if self.server:
             await self.server.stop()
-        logger.info("Cherry Remote 连接器已停止。")
+        logger.info("WinRemote 连接器已停止。")
