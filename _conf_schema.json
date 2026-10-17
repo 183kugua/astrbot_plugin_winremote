@@ -1,0 +1,57 @@
+{
+  "ws_port": {
+    "type": "int",
+    "description": "WebSocket 服务端口",
+    "default": 8765,
+    "hint": "C 端 cherry-remote-app 将连接到此端口"
+  },
+  "auth_token": {
+    "type": "string",
+    "description": "认证 token（C 端 App 必须配置相同值）",
+    "default": "change-me",
+    "hint": "建议使用强随机字符串"
+  },
+  "heartbeat_timeout": {
+    "type": "int",
+    "description": "心跳超时（秒），超过未收到设备任何帧则判定掉线",
+    "default": 60,
+    "hint": "建议大于 App 端 heartbeat_interval"
+  },
+  "pull_threshold": {
+    "type": "int",
+    "description": "文件拉取单帧阈值（字节），小于该值走单帧传输，否则走流式分块",
+    "default": 8388608,
+    "hint": "默认 8MB"
+  },
+  "max_pull_size": {
+    "type": "int",
+    "description": "单次拉取文件大小上限（字节）",
+    "default": 209715200,
+    "hint": "默认 200MB"
+  },
+  "vision_use_current_model": {
+    "type": "bool",
+    "description": "是否默认使用当前对话模型识别截图",
+    "default": true,
+    "hint": "开启后 remote_see 优先使用当前会话模型（需支持多模态）；若识别失败且配置了转述模型，会自动降级。关闭后只使用下方配置的视觉转述模型。"
+  },
+  "vision_caption_provider": {
+    "type": "string",
+    "description": "视觉转述模型提供商（用于当前对话模型不支持多模态时）",
+    "default": "",
+    "hint": "当前对话模型无图像输入能力时，用此模型把截图转述为含 UI 元素坐标的文本。可在下拉中选择已配置的提供商，或手动填写提供商 id。留空则禁用降级。",
+    "_special": "select_provider"
+  },
+  "vision_analyze_prompt": {
+    "type": "text",
+    "description": "识图提示词（默认），要求模型输出可交互元素及像素坐标",
+    "default": "你是一个屏幕识别助手。用户会给你一张电脑屏幕截图，请按要求识别并回答。你必须识别出截图中所有可交互的 UI 元素（按钮、输入框、图标、链接、菜单、复选框、滚动条、窗口、标签页等），并给出每个元素的像素坐标位置，以便程序可以根据坐标进行鼠标点击、键盘输入等操作。\n输出要求：\n1. 用以下格式逐条列出元素（每行一个）：\n   元素名 | 类型 | x,y,width,height\n   类型取：button/input/icon/link/text/window/menu/checkbox/scrollbar/tab 等。\n2. 坐标必须是截图内的像素坐标，左上角为原点，x 向右增大、y 向下增大，单位像素。\n3. 只列出截图里真实存在的元素，不要编造。\n4. 若用户提出具体指令（如『找到登录按钮』），先回答目标元素，再补充其他可交互元素。",
+    "hint": "发送给视觉模型的系统提示词，用于识别截图并输出 UI 元素坐标。留空使用内置默认值。"
+  },
+  "vision_caption_prompt": {
+    "type": "text",
+    "description": "视觉转述提示词（默认），用于无多模态模型时把截图转述为含坐标的文本",
+    "default": "你是一个屏幕转述助手。用户会给你一张电脑屏幕截图，请把屏幕内容完整转述成文字，让一个看不到图片的 AI 也能据此理解屏幕布局并操作电脑。\n转述要求：\n1. 先用一段话概括整体界面：操作系统、当前窗口/应用、主要区域划分。\n2. 然后逐条列出所有可交互 UI 元素，每行一个，格式：\n   元素名 | 类型 | x,y,width,height | 用途描述\n   类型取：button/input/icon/link/text/window/menu/checkbox/scrollbar/tab 等。\n3. 坐标必须是截图内的像素坐标，左上角为原点，x 向右增大、y 向下增大，单位像素。\n4. 额外说明：当前焦点所在、可输入位置、明显的操作入口。\n只描述截图里真实存在的内容，不要编造。全程使用中文。",
+    "hint": "发送给转述模型的系统提示词，输出屏幕布局与可交互元素坐标。留空使用内置默认值。"
+  }
+}
